@@ -1,6 +1,6 @@
 use bevy::{diagnostic::LogDiagnosticsPlugin, prelude::*, render::primitives::Aabb};
 use warbler_grass::{diagnostic::WarblerDiagnosticsPlugin, prelude::*};
-mod helper;
+ 
 fn main() {
     App::new()
         .add_plugins((
@@ -9,7 +9,7 @@ fn main() {
             WarblersPlugin,
             // Just a helper plugin for spawning a camera
             // As in all examples, you can use the wasd keys for movement and qe for rotation
-            helper::SimpleCamera,
+            SimpleCamera,
             // Let's also log the amount of blades rendered
             WarblerDiagnosticsPlugin,
             LogDiagnosticsPlugin::default(),
@@ -61,5 +61,63 @@ fn setup_grass_chunks(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..default()
         });
+    }
+}
+
+
+
+//simple camera is below 
+
+/// Used in the example to spawn a simple camera which is moves with qweasd keys
+pub struct SimpleCamera;
+impl Plugin for SimpleCamera {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup_camera)
+            .add_systems(Update, camera_movement);
+    }
+}
+fn setup_camera(mut commands: Commands) {
+    commands.spawn((Camera3dBundle {
+        transform: Transform::from_xyz(-20.0, 15., -20.0)
+            .looking_at(Vec3::new(0., 10., 0.), Vec3::Y),
+        ..default()
+    },));
+}
+pub fn camera_movement(
+    input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut Transform, With<Camera>>,
+) {
+    for mut transform in &mut query {
+        let move_speed = 0.6;
+        let rotate_speed = 0.03;
+        let mut forward = *transform.forward();
+        forward.y = 0.;
+        let right = transform.right();
+        let up = transform.up();
+
+        if input.pressed(KeyCode::KeyW) {
+            transform.translation += forward * move_speed;
+        }
+        if input.pressed(KeyCode::KeyS) {
+            transform.translation -= forward * move_speed;
+        }
+        if input.pressed(KeyCode::Space) {
+            transform.translation += up * move_speed;
+        }
+        if input.pressed(KeyCode::ShiftLeft) {
+            transform.translation -= up * move_speed;
+        }
+        if input.pressed(KeyCode::KeyQ) {
+            transform.rotate_y(rotate_speed);
+        }
+        if input.pressed(KeyCode::KeyE) {
+            transform.rotate_y(-rotate_speed);
+        }
+        if input.pressed(KeyCode::KeyA) {
+            transform.translation -= right * move_speed;
+        }
+        if input.pressed(KeyCode::KeyD) {
+            transform.translation += right * move_speed;
+        }
     }
 }
