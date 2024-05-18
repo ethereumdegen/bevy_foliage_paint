@@ -9,14 +9,14 @@ https://github.com/norman784/gaiku/blob/master/crates/gaiku_baker_heightmap/src/
 */
 
 #[derive(Error, Debug)]
-pub enum RegionMapError {
+pub enum DensityMapError {
     #[error("failed to load the image")]
     LoadingError,
 }
 
-pub type RegionMapU8 = Vec<Vec<u8>>;
+pub type DensityMapU8 = Vec<Vec<u8>>;
 
- 
+ /*
 pub struct SubRegionMapU8(pub Vec<Vec<u8>>);
 
 impl SubRegionMapU8 {
@@ -45,15 +45,15 @@ impl SubRegionMapU8 {
             row.push(value);
         }
     }
-}
+}*/
 
-pub trait RegionMap {
-    fn load_from_image(image: &Image) -> Result<Box<Self>, RegionMapError>;
+pub trait DensityMap {
+    fn load_from_image(image: &Image) -> Result<Box<Self>, DensityMapError>;
 
     fn to_image(&self) -> Image;
 }
 
-impl RegionMap for RegionMapU8 {
+impl DensityMap for DensityMapU8 {
 
     //this expects data to be stored  [y][x]
     //rgba8uint
@@ -95,7 +95,7 @@ impl RegionMap for RegionMapU8 {
 
 
     //rgba8uint
-   fn load_from_image(image: &Image) -> Result<Box<Self>, RegionMapError> {
+   fn load_from_image(image: &Image) -> Result<Box<Self>, DensityMapError> {
        
 
          let width = image.size().x as usize;
@@ -103,11 +103,11 @@ impl RegionMap for RegionMapU8 {
     let format = image.texture_descriptor.format;
 
    if format!= TextureFormat::Rgba8Uint &&  format != TextureFormat::R8Uint && format != TextureFormat::Rgba8Unorm && format != TextureFormat::Rgba8UnormSrgb {
-        println!("regionmap: wrong format {:?}", format);
-        return Err(RegionMapError::LoadingError);
+        println!("DensityMap: wrong format {:?}", format);
+        return Err(DensityMapError::LoadingError);
     }
 
-    let mut region_map = Vec::with_capacity(height);
+    let mut density_map = Vec::with_capacity(height);
       for y in 0..height {
        let mut row = Vec::with_capacity(width);
         
@@ -120,7 +120,7 @@ impl RegionMap for RegionMapU8 {
         region_map.push(row);
     }
 
-    Ok(Box::new(region_map))
+    Ok(Box::new(density_map))
 
 
     }

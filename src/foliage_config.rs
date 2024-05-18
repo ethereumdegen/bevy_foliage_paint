@@ -15,31 +15,34 @@ use std::io::Read;
 use std::path::PathBuf;
 
 #[derive(Component, Deserialize, Serialize, Clone)]
-pub struct RegionsConfig {
+pub struct FoliageConfig {
     pub boundary_dimensions: Vec2, 
+    chunk_rows: usize,
+
  
-    pub region_texture_path: PathBuf,
-    pub region_color_map_texture_path: PathBuf,
-    pub regions_manifest_file: PathBuf,
+    pub density_folder_path: PathBuf,
+    pub grass_y_map_folder_path: PathBuf,
+   // pub foliage_manifest_file: PathBuf,
     
 }
 
-impl Default for RegionsConfig {
+impl Default for FoliageConfig {
     fn default() -> Self {
         Self {
             // chunk_width: 64.0 ,
             boundary_dimensions: Vec2::new(1024.0, 1024.0), //this should match the heightmap dimensions... consider removing this var or changing how it fundamentally works .
-            
+            chunk_rows: 4,
 
-            region_texture_path: "regions/regions.png".into(),
-            region_color_map_texture_path: "regions/region_color_map.png".into(),
-            regions_manifest_file: "regions/regions_manifest.ron".into(),
+
+            density_folder_path: "foliage/regions.png".into(),
+            grass_y_map_folder_path: "foliage/region_color_map.png".into(),
+        
             
         }
     }
 }
 
-impl RegionsConfig {
+impl FoliageConfig {
     pub fn load_from_file(file_path: &str) -> Result<Self, ron::Error> {
         let mut file = File::open(file_path).expect("Failed to open file");
         let mut contents = String::new();

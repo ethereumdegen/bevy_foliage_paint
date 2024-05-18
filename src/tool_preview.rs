@@ -1,8 +1,8 @@
-use crate::regions::RegionPlaneMesh;
+use crate::foliage::FoliageChunk;
 use bevy::prelude::*;
 
 
-use super::regions_material::{RegionsMaterialExtension};
+ 
 
 #[derive(Resource, Default)]
 pub struct ToolPreviewResource {
@@ -13,7 +13,7 @@ pub struct ToolPreviewResource {
 
 
 
-
+/*
 pub fn update_tool_uniforms(
     region_mat_ext_query: Query<&Handle<RegionsMaterialExtension>, With<RegionPlaneMesh>>,
 
@@ -30,3 +30,4 @@ pub fn update_tool_uniforms(
         }
     }
 }
+*/

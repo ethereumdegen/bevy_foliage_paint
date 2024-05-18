@@ -1,4 +1,4 @@
-use crate::regionmap::RegionMapU8;
+use crate::density_map::DensityMapU8;
 use std::fs::File;
 use std::io::BufWriter;
 use std::ops::{Add, Div, Neg};
@@ -19,9 +19,9 @@ use bevy::prelude::*;
 use core::fmt::{self, Display, Formatter};
 
   
-use crate::regions::{RegionDataEvent, RegionPlaneMesh, RegionsData, RegionsDataMapResource};
-use crate::regions_config::RegionsConfig;
-use crate::regions_material::RegionsMaterialExtension;
+use crate::foliage::{FoliageDataEvent,    FoliageData,  FoliageDataMapResource};
+use crate::foliage_config::FoliageConfig;
+ 
 
  
  
@@ -35,24 +35,24 @@ use rand::Rng;
 use core::cmp::{max, min};
 
 
-pub struct BevyRegionEditsPlugin {
+pub struct BevyFoliageEditsPlugin {
     
 }
 
-impl Default for BevyRegionEditsPlugin {
+impl Default for BevyFoliageEditsPlugin {
     fn default() -> Self {
         Self {
              
         }
     }
 }
-impl Plugin for BevyRegionEditsPlugin {
+impl Plugin for BevyFoliageEditsPlugin {
     fn build(&self, app: &mut App) {
 
 
-      app.add_event::<EditRegionEvent>();
-       app.add_event::<RegionCommandEvent>();
-       app.add_event::<RegionBrushEvent>();
+      app.add_event::<EditFoliageEvent>();
+       app.add_event::<FoliageCommandEvent>();
+       app.add_event::<FoliageBrushEvent>();
         app.add_systems(Update, apply_tool_edits); //put this in a sub plugin ?
         app.add_systems(Update, apply_command_events);
 
@@ -62,7 +62,7 @@ impl Plugin for BevyRegionEditsPlugin {
 
 #[derive(Debug, Clone)]
 pub enum EditingTool {
-    SetRegionMap { region_index: u8 },        // height, radius, save to disk 
+    SetFoliageMap { foliage_index: u16 },        // height, radius, save to disk 
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -89,7 +89,7 @@ impl Display for BrushType {
 
 // entity, editToolType, coords, magnitude
 #[derive(Event, Debug, Clone)]
-pub struct EditRegionEvent {
+pub struct EditFoliageEvent {
     pub entity: Entity, //should always be the plane 
     pub tool: EditingTool,
     pub radius: f32,
@@ -99,13 +99,13 @@ pub struct EditRegionEvent {
 }
 
 #[derive(Event, Debug, Clone)]
-pub enum RegionBrushEvent {
-    EyeDropRegionIndex { region_index: u8 },
+pub enum FoliageBrushEvent {
+    EyeDropFoliageIndex { region_index: u8 },
   //  EyeDropSplatMap { r: u8, g: u8, b: u8 },
 }
 
 #[derive(Event, Debug, Clone)]
-pub enum RegionCommandEvent {
+pub enum FoliageCommandEvent {
     SaveAll ,  
 }
 
@@ -114,40 +114,40 @@ pub fn apply_command_events(
 
    // mut chunk_query: Query<(&Chunk, &mut ChunkData, &Parent, &Children)>, //chunks parent should have terrain data
 
-    mut images: ResMut<Assets<Image>>,
-    mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
+   // mut images: ResMut<Assets<Image>>,
+    //mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
 
-    mut region_maps_res: ResMut<RegionsDataMapResource>, //like height map resource 
+    mut foliage_map_res: ResMut<FoliageDataMapResource>, //like height map resource 
 
-    region_data_query: Query<(&RegionsData, &RegionsConfig)>,
+   foliage_data_query: Query<(&FoliageData, &FoliageConfig)>,
 
     
-    mut ev_reader: EventReader<RegionCommandEvent>,
+    mut ev_reader: EventReader<FoliageCommandEvent>,
 ) {
     for ev in ev_reader.read() {
        
            
 
-            let Some((region_data, region_config)) = region_data_query
+            let Some((foliage_data, foliage_config)) = foliage_data_query
                     .get_single().ok() else {continue};
 
 
 
             match ev {
-                RegionCommandEvent::SaveAll => {
+                FoliageCommandEvent::SaveAll => {
                     //let file_name = format!("{}.png", chunk.chunk_id);
                      let asset_folder_path = PathBuf::from("assets");
-                    let region_texture_path = &region_config.region_texture_path;
+                    let density_texture_path = &foliage_config.density_map_texture_path;
                      
                     
                 //    info!("path {:?}",region_data_path);
                       if let Some(region_data) =
-                          &  region_maps_res.regions_data_map
+                          &  foliage_map_res.regions_data_map
                         {
 
-                        save_region_index_map_to_disk(
+                        save_density_map_to_disk(
                                 &region_data,
-                                asset_folder_path.join( region_texture_path ),
+                                asset_folder_path.join( density_texture_path ),
                         );
                     }
                      
@@ -402,20 +402,18 @@ fn apply_hardness_multiplier(
 }
 
 
-
-//move this to region_map.rs ? 
-
+ 
 // outputs as R16 grayscale
-pub fn save_region_index_map_to_disk<P>(
-    region_map_data: &RegionMapU8, // Adjusted for direct Vec<Vec<u16>> input
+pub fn save_density_map_to_disk<P>(
+    density_map_data: &DensityMapU8, // Adjusted for direct Vec<Vec<u16>> input
     save_file_path: P,
 ) where
     P: AsRef<Path>,
 {
-    let region_map_data = region_map_data.clone();
+    let density_map_data = density_map_data.clone();
 
-    let height = region_map_data.len();
-    let width = region_map_data.first().map_or(0, |row| row.len());
+    let height = density_map_data.len();
+    let width = density_map_data.first().map_or(0, |row| row.len());
 
     let file = File::create(save_file_path).expect("Failed to create file");
     let ref mut w = BufWriter::new(file);
@@ -426,7 +424,7 @@ pub fn save_region_index_map_to_disk<P>(
     let mut writer = encoder.write_header().expect("Failed to write PNG header");
 
     // Flatten the Vec<Vec<u8>> to a Vec<u8> for the PNG encoder
-    let buffer: Vec<u8> = region_map_data.iter().flatten().cloned().collect();
+    let buffer: Vec<u8> = density_map_data.iter().flatten().cloned().collect();
 
     // Write the image data
     writer

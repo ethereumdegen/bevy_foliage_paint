@@ -6,19 +6,17 @@ use bevy::render::render_resource::{
     TextureFormat,
 };
 
-use super::regionmap::{RegionMap,RegionMapU8,SubRegionMapU8};
+use super::density_map::{DensityMapU8,DensityMap};
 
 use bevy::utils::HashMap;
 
  
-use crate::regions_config::RegionsConfig;
-use crate::regions_material::{RegionsMaterial, RegionsMaterialExtension, ToolPreviewUniforms};
+use crate::foliage_config::FoliageConfig;
  
 
-
 #[derive(Resource, Default)]
-pub struct RegionsDataMapResource {
-    pub regions_data_map: Option<RegionMapU8>, // Keyed by chunk id
+pub struct FoliageDataMapResource {
+    pub density_map_data: Option<DensityMapU8>, // Keyed by chunk id
 }
 
 
@@ -31,11 +29,11 @@ pub struct RegionPlaneMesh {
  
 
 #[derive(Event)]
-pub enum RegionDataEvent {
-    RegionMapNeedsReloadFromResourceData
+pub enum FoliageDataEvent {
+    FoliageNeedsReloadFromResourceData
 } 
 #[derive(Default, PartialEq, Eq)]
-pub enum RegionsDataStatus {
+pub enum FoliageDataStatus {
     //us this for texture image and splat image and alpha mask .. ?
     #[default]
     NotLoaded,
@@ -43,40 +41,45 @@ pub enum RegionsDataStatus {
 }
 
 #[derive(Component, Default)]
-pub struct  RegionsData {
+pub struct  FoliageData {
      
-    pub regions_data_status: RegionsDataStatus,
+    pub foliage_data_status: FoliageDataStatus,
 
     texture_image_handle: Option<Handle<Image>>,
     color_map_texture_handle:  Option<Handle<Image>>,
  
-    regions_image_data_load_status: bool ,
+    foliage_image_data_load_status: bool ,
  
 }
 
-impl RegionsData {
+impl FoliageData {
     pub fn new() -> Self {
-        let regions_data = RegionsData::default();
+        let foliage_data = FoliageData::default();
 
          
-        regions_data
+        foliage_data
     }
 }
 
 
 
-pub type PlanarPbrBundle = MaterialMeshBundle<RegionsMaterialExtension>;
+pub struct FoliageChunk {
+    chunk_id: usize 
+}  //index ? 
+
+//pub type PlanarPbrBundle = MaterialMeshBundle<RegionsMaterialExtension>;
 
 
-pub fn initialize_regions(
+//spawn the chunks !? 
+pub fn initialize_foliage(
     mut commands: Commands,
 
     mut asset_server: ResMut<AssetServer>, 
 
-    mut regions_query: Query<(Entity, &mut RegionsData, &RegionsConfig)>,
+    mut foliage_root_query: Query<(Entity, &mut FoliageData, &FoliageConfig)>,
 
     mut meshes: ResMut <Assets<Mesh>>,
-    mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
+  //  mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
 
     mut images: ResMut<Assets<Image>>
 ) {
@@ -165,7 +168,7 @@ impl RegionsData {
 }
 
 
-pub fn load_regions_texture_from_image(
+pub fn load_density_texture_from_image(
     mut regions_query: Query<(&mut RegionsData, &RegionsConfig)>,
 
     mut regions_data_res: ResMut<RegionsDataMapResource>,
@@ -215,10 +218,10 @@ pub fn load_regions_texture_from_image(
 }
 
 
- 
+ /*
 
 
-pub fn listen_for_region_events(
+pub fn listen_for_foliage_events(
     mut commands : Commands, 
    mut  evt_reader: EventReader<RegionDataEvent>,
 
@@ -292,3 +295,4 @@ pub fn listen_for_region_events(
 
 
 
+*/
