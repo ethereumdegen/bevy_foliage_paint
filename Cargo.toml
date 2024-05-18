@@ -37,3 +37,7 @@ warbler_grass = "0.6.0"
 name = "basic"
 path = "examples/basic.rs"
 
+
+[[example]]
+name = "chunks"
+path = "examples/chunks.rs"
