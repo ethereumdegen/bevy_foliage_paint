@@ -1,4 +1,6 @@
  
+use crate::foliage_chunk::ChunkCoords;
+use crate::foliage_chunk::FoliageChunk;
 use bevy::asset::{AssetPath, LoadState};
 use bevy::pbr::{ExtendedMaterial, OpaqueRendererMethod};
 use bevy::prelude::*;
@@ -63,9 +65,7 @@ impl FoliageData {
 
 
 
-pub struct FoliageChunk {
-    chunk_id: usize 
-}  //index ? 
+ //index ? 
 
 //pub type PlanarPbrBundle = MaterialMeshBundle<RegionsMaterialExtension>;
 
@@ -83,91 +83,63 @@ pub fn initialize_foliage(
 
     mut images: ResMut<Assets<Image>>
 ) {
-    for (region_entity, mut regions_data, regions_config) in regions_query.iter_mut() {
-        if regions_data.regions_data_status ==  RegionsDataStatus::NotLoaded {
+    for (foliage_root_entity, mut foliage_data, foliage_config) in foliage_root_query.iter_mut() {
+        if foliage_data.foliage_data_status ==  FoliageDataStatus::NotLoaded {
                 
 
-         
+            let max_chunks = foliage_config.chunk_rows * foliage_config.chunk_rows;
 
-
-             if regions_data.color_map_texture_handle.is_none() {
-                 regions_data.color_map_texture_handle = Some( 
-                    asset_server.load( 
-                        regions_config.region_color_map_texture_path.clone() 
-                     ) );
-
-           }
-
-
-             if regions_data.regions_image_data_load_status == false {continue};
+            for chunk_id in 0..max_chunks {
 
 
 
-             let regions_texture = regions_data.get_regions_texture_image().clone();
+                let chunk_coords = ChunkCoords::from_chunk_id(chunk_id, foliage_config.chunk_rows); // [ chunk_id / terrain_config.chunk_rows ,  chunk_id  % terrain_config.chunk_rows];
+                let chunk_dimensions = foliage_config.get_chunk_dimensions();
 
+                let chunk_name = format!("Chunk {:?}", chunk_id);
 
-             let regions_material: Handle<RegionsMaterialExtension> =
-                region_materials.add(ExtendedMaterial {
-                    base: StandardMaterial {
-                        // can be used in forward or deferred mode.
-                        opaque_render_method: OpaqueRendererMethod::Auto,
-                        alpha_mode: AlphaMode::Blend,
+                let chunk_entity = commands
+                    .spawn(FoliageChunk::new(chunk_id))
+                    .insert(Name::new(chunk_name))
+                    .insert(SpatialBundle {
+                        transform: Transform::from_xyz(
+                            chunk_coords.x() as f32 * chunk_dimensions.x,
+                            0.0,
+                            chunk_coords.y() as f32 * chunk_dimensions.y,
+                        ),
+                        visibility: Visibility::Hidden,
 
-                        base_color: Color::rgba(1.0, 1.0, 1.0, 0.1),
-
-                        reflectance: 0.0,
-                        perceptual_roughness: 0.9,
-                        specular_transmission: 0.1,
-
-                       unlit:true, 
-                      fog_enabled :false,
-
-                        
                         ..Default::default()
-                    },
-                    extension: RegionsMaterial {
-                         
-                        tool_preview_uniforms: ToolPreviewUniforms::default(),
-                        regions_texture: regions_texture.clone(),
-                        color_map_texture: regions_data.color_map_texture_handle.clone() ,
-                      
-                        ..default()
-                    },
-                });
+                    })
+                    .id();
 
-           let dimensions = regions_config.boundary_dimensions.clone();
+                let mut terrain_entity_commands = commands.get_entity(foliage_root_entity).unwrap();
 
-             // ground plane
-           let regions_plane = commands.spawn(PlanarPbrBundle {
-                mesh: meshes.add(Plane3d::default().mesh().size( dimensions.x, dimensions.y )),
-                material: regions_material,
-                transform: Transform::from_xyz(dimensions.x/2.0, 0.0, dimensions.y/2.0),
-                ..default()
-            })
-           .insert(RegionPlaneMesh{})
-           .id();
-
-            commands.entity(  region_entity  ).add_child(  regions_plane ) ;
+                //terrain_data.chunk_entity_lookup.insert(chunk_id,chunk_entity.clone());
+                terrain_entity_commands.add_child(chunk_entity);
 
 
 
-            //do regionmap load_from_file .. ? 
 
-            regions_data.regions_data_status = RegionsDataStatus::Loaded
+            }
+
+
+         
+ 
+            foliage_data.foliage_data_status = FoliageDataStatus::Loaded
         }
     }
 }
 
-impl RegionsData {
-    pub fn get_regions_texture_image(&self) -> &Option<Handle<Image>> {
-        &self.texture_image_handle
-    }
+impl FoliageData {
+    pub fn get_density_texture_image(&self) -> &Option<Handle<Image>> {
+        &self.texture_image_handle 
 
       
- 
+    }
 }
 
-
+/*
 pub fn load_density_texture_from_image(
     mut regions_query: Query<(&mut RegionsData, &RegionsConfig)>,
 
@@ -216,6 +188,10 @@ pub fn load_density_texture_from_image(
         }
     }
 }
+
+*/
+
+
 
 
  /*

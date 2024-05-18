@@ -1,4 +1,4 @@
-use crate::tool_preview::update_tool_uniforms;
+//use crate::tool_preview::update_tool_uniforms;
 use crate::foliage::{  FoliageDataEvent, FoliageDataMapResource};
 use crate::edit::BevyFoliageEditsPlugin;
 //use crate::regions::load_regions_texture_from_image;
@@ -10,12 +10,11 @@ use foliage::{ initialize_foliage,  };
 
 use std::time::Duration;
    
+  
  
- 
- 
- pub mod edit;
+pub mod edit;
 
-
+pub mod foliage_chunk;
 
 pub mod density_map;
  
@@ -50,7 +49,7 @@ impl Plugin for BevyFoliagePaintPlugin {
                 initialize_foliage,
                // listen_for_region_events ,
               //  load_regions_texture_from_image ,
-                update_tool_uniforms
+              //  update_tool_uniforms
                 ) ,
         );
         

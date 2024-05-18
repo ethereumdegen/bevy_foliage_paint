@@ -17,7 +17,7 @@ use std::path::PathBuf;
 #[derive(Component, Deserialize, Serialize, Clone)]
 pub struct FoliageConfig {
     pub boundary_dimensions: Vec2, 
-    chunk_rows: usize,
+    pub chunk_rows: usize,
 
  
     pub density_folder_path: PathBuf,

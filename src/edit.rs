@@ -53,7 +53,7 @@ impl Plugin for BevyFoliageEditsPlugin {
       app.add_event::<EditFoliageEvent>();
        app.add_event::<FoliageCommandEvent>();
        app.add_event::<FoliageBrushEvent>();
-        app.add_systems(Update, apply_tool_edits); //put this in a sub plugin ?
+   //     app.add_systems(Update, apply_tool_edits); // add back in later 
         app.add_systems(Update, apply_command_events);
 
 
@@ -137,12 +137,12 @@ pub fn apply_command_events(
                 FoliageCommandEvent::SaveAll => {
                     //let file_name = format!("{}.png", chunk.chunk_id);
                      let asset_folder_path = PathBuf::from("assets");
-                    let density_texture_path = &foliage_config.density_map_texture_path;
+                    let density_texture_path = &foliage_config.density_folder_path;
                      
                     
                 //    info!("path {:?}",region_data_path);
                       if let Some(region_data) =
-                          &  foliage_map_res.regions_data_map
+                          &  foliage_map_res.density_map_data
                         {
 
                         save_density_map_to_disk(
@@ -163,15 +163,23 @@ pub fn apply_command_events(
      
 
     //  Ok(())
+
 }
 
+
+
+
+//need to do this w chunks ... each chunk has density data? and must be linked w height data.. 
+
+
+/*
 pub fn apply_tool_edits(
   
-    region_data_query: Query<(&mut RegionsData, &RegionsConfig)> , 
+    foliage_data_query: Query<(&mut FoliageData, &FoliageConfig)> , 
 
    
 
-    mut region_map_data_res: ResMut<RegionsDataMapResource>,
+    mut region_map_data_res: ResMut<FoliageDataMapResource>,
  
      region_plane_mesh_query: Query<(Entity,   &GlobalTransform), With<RegionPlaneMesh>>,
 
@@ -374,7 +382,9 @@ pub fn apply_tool_edits(
 
                                 }
     }
-}
+}*/
+
+
 
 fn get_hardness_multiplier(pixel_distance: f32, brush_radius: f32, brush_hardness: f32) -> f32 {
     // Calculate the distance as a percentage of the radius
