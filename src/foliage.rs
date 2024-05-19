@@ -129,6 +129,10 @@ pub fn initialize_foliage(
 
                 let chunk_name = format!("Chunk {:?}", chunk_id);
 
+
+
+                let height_scale =  foliage_config.height_scale  ;
+
                 let chunk_entity = commands
                     .spawn(FoliageChunk::new(chunk_id))
 
@@ -138,7 +142,9 @@ pub fn initialize_foliage(
                             chunk_coords.x() as f32 * chunk_dimensions.x,
                             0.0,
                             chunk_coords.y() as f32 * chunk_dimensions.y,
-                        ),
+                        ).with_scale( Vec3::new(1.0, height_scale, 1.0) ),
+
+
                       //  visibility: Visibility::Hidden,
 
                         ..Default::default()

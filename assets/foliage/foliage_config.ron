@@ -3,6 +3,8 @@ FoliageConfig(
     boundary_dimensions: (1024.0, 1024.0), // Vec2(x, y)
     chunk_rows: 4,
 
+    height_scale: 0.0004,
+
   
 
     density_folder_path: Some("foliage/density"), 

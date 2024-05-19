@@ -537,6 +537,9 @@ fn rebuild_chunk_y_offset_texture(
 
 fn rebuild_chunks(  
 	mut commands: Commands, 
+
+
+    
 	chunks_query: Query< 
 	(Entity,&FoliageChunk, &FoliageChunkDensityTexture, &FoliageChunkYOffsetTexture), 
 	Or< (Changed<FoliageChunkDensityTexture>, Changed<FoliageChunkYOffsetTexture>) >     
@@ -565,7 +568,7 @@ fn rebuild_chunks(
 
 		  info!("rebuild chunk {:?}", chunk_id );
 
-          let chunk_height = 256.0;
+          let chunk_height = 65536.0;
 
 		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
@@ -574,7 +577,7 @@ fn rebuild_chunks(
             // or seperate height maps if we wanted to
             y_map: y_offset_map.clone().into(),
 
-            height: WarblerHeight::Texture(density_map.clone()),
+            height: WarblerHeight::Uniform(1.0),
 
 
 

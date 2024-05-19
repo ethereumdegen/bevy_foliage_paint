@@ -19,7 +19,7 @@ pub struct FoliageConfig {
     pub boundary_dimensions: Vec2, 
     pub chunk_rows: u32,
      
-
+    pub height_scale: f32,
     
     pub density_folder_path: Option<PathBuf>,
     pub grass_y_map_folder_path: Option<PathBuf>,
@@ -33,6 +33,7 @@ impl Default for FoliageConfig {
             // chunk_width: 64.0 ,
             boundary_dimensions: Vec2::new(1024.0, 1024.0), //this should match the heightmap dimensions... consider removing this var or changing how it fundamentally works .
             chunk_rows: 4,
+            height_scale: 0.0004,
  
             density_folder_path: Some("foliage/density".into()),
             grass_y_map_folder_path: Some("foliage/y_map".into()),
