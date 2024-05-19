@@ -1,6 +1,9 @@
 
  
-use std::path::PathBuf;
+use bevy::render::render_resource::TextureFormat;
+use bevy::render::texture::ImageFormat;
+use bevy::render::texture::ImageLoaderSettings;
+ use std::path::PathBuf;
 
 use crate::foliage_config::FoliageConfig;
 use crate::y_offset_map::YOffsetMap;
@@ -251,13 +254,13 @@ fn load_chunk_density_texture(
       chunks_query: Query< 
     ( Entity,   & RequestLoadFoliageChunkDensityTexture)  
      >,
-
+        images: Res<Assets<Image>>, 
      asset_server: Res<AssetServer> 
 
  
 ){
 
-    for (chunk_entity, load_texture_request ) in chunks_query.iter(){
+   /* for (chunk_entity, load_texture_request ) in chunks_query.iter(){
 
         let texture :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
 
@@ -267,7 +270,30 @@ fn load_chunk_density_texture(
 
           commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkDensityTexture>();
 
-    }   
+    }   */
+
+
+    for (chunk_entity, load_texture_request ) in chunks_query.iter(){
+ 
+
+          let texture_handle :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+
+          let Some(image) = images.get(&texture_handle) else {continue};
+
+          let Some(density_map_data) = DensityMap::load_from_image(image).ok() else {continue};
+
+       
+          commands.entity(chunk_entity).insert( FoliageChunkDensityData {
+            density_map_data: *density_map_data
+          } );
+
+          //need to change the texture format ?
+
+          commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkDensityTexture>();
+        
+    }
+
+
 
 
 }
@@ -284,18 +310,28 @@ fn load_chunk_y_offset_texture(
     ( Entity,   & RequestLoadFoliageChunkYOffsetTexture)  
      >,
 
+     images: Res<Assets<Image>>, 
+
       asset_server: Res<AssetServer> 
 
 
 ){ 
 
     for (chunk_entity, load_texture_request ) in chunks_query.iter(){
+ 
 
-          let texture :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+          let texture_handle :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
 
-          commands.entity(chunk_entity).insert( FoliageChunkYOffsetTexture {
-            texture
+          let Some(image) = images.get(&texture_handle) else {continue};
+
+          let Some(y_offset_map_data) = YOffsetMap::load_from_image(image).ok() else {continue};
+
+       
+          commands.entity(chunk_entity).insert( FoliageChunkYOffsetData {
+            y_offset_map_data: *y_offset_map_data
           } );
+
+          //need to change the texture format ?
 
           commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkYOffsetTexture>();
         
