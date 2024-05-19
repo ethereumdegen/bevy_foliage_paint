@@ -17,11 +17,12 @@ use std::path::PathBuf;
 #[derive(Component, Deserialize, Serialize, Clone)]
 pub struct FoliageConfig {
     pub boundary_dimensions: Vec2, 
-    pub chunk_rows: usize,
+    pub chunk_rows: u32,
+     
 
- 
-    pub density_folder_path: PathBuf,
-    pub grass_y_map_folder_path: PathBuf,
+    
+    pub density_folder_path: Option<PathBuf>,
+    pub grass_y_map_folder_path: Option<PathBuf>,
    // pub foliage_manifest_file: PathBuf,
     
 }
@@ -32,10 +33,9 @@ impl Default for FoliageConfig {
             // chunk_width: 64.0 ,
             boundary_dimensions: Vec2::new(1024.0, 1024.0), //this should match the heightmap dimensions... consider removing this var or changing how it fundamentally works .
             chunk_rows: 4,
-
-
-            density_folder_path: "foliage/regions.png".into(),
-            grass_y_map_folder_path: "foliage/region_color_map.png".into(),
+ 
+            density_folder_path: Some("foliage/density".into()),
+            grass_y_map_folder_path: Some("foliage/y_map".into()),
         
             
         }
@@ -51,5 +51,17 @@ impl FoliageConfig {
         Ok(ron::from_str(&contents)?)
     }
 
-  
+    
+    pub fn get_chunk_dimensions(&self) -> Vec2 {
+        let chunk_dimension_x = self.boundary_dimensions.x / self.chunk_rows as f32;
+        let chunk_dimension_z = self.boundary_dimensions.y / self.chunk_rows as f32;
+
+        Vec2::new(chunk_dimension_x, chunk_dimension_z)
+    }
+
 }
+
+
+
+
+ 

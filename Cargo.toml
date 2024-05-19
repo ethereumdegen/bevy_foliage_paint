@@ -1,6 +1,6 @@
 [package]
-name = "bevy_regions"
-description = "A region painting system using a u16 texture"
+name = "bevy_foliage_paint"
+description = "A foliage painting system using warbler grass"
  
 version = "0.13.4"
  
@@ -32,6 +32,7 @@ serde_json = "1.0.113"
  
 rand = "0.8.5"
 warbler_grass = "0.6.0"
+bevy-inspector-egui = "0.24.0"
  
 [[example]]
 name = "basic"

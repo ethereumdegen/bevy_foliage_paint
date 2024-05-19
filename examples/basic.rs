@@ -1,22 +1,39 @@
+use bevy_foliage_paint::density_map::DensityMap;
+use bevy_foliage_paint::density_map::DensityMapU8;
+use bevy_foliage_paint::foliage_chunk::FoliageChunk;
+use bevy_foliage_paint::foliage_chunk::FoliageChunkDensityTexture;
+use bevy_foliage_paint::foliage_chunk::FoliageChunkYOffsetTexture;
+use bevy_foliage_paint::foliage_chunk::{FoliageChunkDensityData,FoliageChunkYOffsetData};
 use bevy::input::mouse::MouseMotion;
-use bevy::render::render_asset::RenderAssetUsages;
+
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::{pbr::ShadowFilteringMethod, prelude::*};
-use bevy_regions::{
-    regions::{RegionsData },
-    regions_config::RegionsConfig,
-    BevyRegionsPlugin,
+use bevy_foliage_paint::{
+    foliage::{FoliageData },
+    foliage_config::FoliageConfig,
+    BevyFoliagePaintPlugin,
 };
 use image::{ImageBuffer, Rgba};
 
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 //#[derive(Resource)]
 //pub struct TextureLoaderResource {}
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(BevyRegionsPlugin::default())
+         .add_plugins(WorldInspectorPlugin::new())
+        .add_plugins(BevyFoliagePaintPlugin::default())
         .add_systems(Startup, setup)
+
+
+        .init_resource::<SampleTexturesResource>()
+
+
+
+        .add_systems(Update, add_sample_data_for_chunks)
+
+
      //   .add_systems(Startup,create_and_save_texture)
         .add_systems(Update, update_camera_look)
         .add_systems(Update, update_camera_move)
@@ -24,49 +41,113 @@ fn main() {
         .run();
 }
 
-/*
-fn create_and_save_texture(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let size = Extent3d {
-        width: 1024,
-        height: 1024,
-        depth_or_array_layers: 1,
-    };
 
-    let format = TextureFormat::Rgba8Unorm;
-    let mut image = Image::new_fill(
-        size,
-        TextureDimension::D2,
-        &[0, 0, 0, 255],
-        format,
-        RenderAssetUsages::default()
-    );
 
-    // Modify the image data as needed
-    let mut img_buffer = image.data.clone();
-    let mut img_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(1024, 1024, img_buffer).unwrap();
 
-    // Example: Set a pixel to white
-    img_buffer.put_pixel(512, 512, Rgba([255, 255, 255, 255]));
 
-    // Update the image data
-    image.data = img_buffer.into_raw();
 
-    // Save the image to a file
-    let texture_handle = images.add(image);
-    let texture = images.get(texture_handle).unwrap();
-    let img_buffer: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(1024, 1024, texture.data.clone()).unwrap();
-    img_buffer.save("texture.png").unwrap();
+
+#[derive(Resource,Default)]
+struct SampleTexturesResource {
+    sample_density_map: Handle<Image>,
+    sample_y_offset_map: Handle<Image> , 
+} 
+
+fn add_sample_data_for_chunks(
+
+    mut commands:Commands,
+  //  asset_server: Res<AssetServer>, 
+
+
+    sample_textures_res: Res<SampleTexturesResource>, 
+
+    image_assets: Res<Assets<Image>>,
+
+
+    chunks_query: Query< 
+       Entity   , 
+    (   With<FoliageChunk>, Without<FoliageChunkDensityData>   )
+    > 
+
+    ){
+
+
+      for chunk_entity in chunks_query.iter() {
+
+
+
+        let density_map = image_assets.get( sample_textures_res.sample_density_map.clone() );  
+        
+        let y_offset_map = image_assets.get( sample_textures_res.sample_y_offset_map.clone() );  
+
+
+
+        if let Some(density_map) = density_map {
+              if let Some(y_offset_map) = y_offset_map {
+
+
+
+                
+
+             //   let dimensions:Vec2  = Vec2::new(256.0,256.0);
+
+                let density_map_data = DensityMapU8::load_from_image( density_map  ).unwrap();
+                let y_offset_map_data = DensityMapU8::load_from_image( y_offset_map  ).unwrap();
+
+                commands.entity(chunk_entity).insert( 
+
+                    FoliageChunkDensityData {
+                        density_map_data: *density_map_data
+
+
+                    }
+
+                );
+
+
+                 commands.entity(chunk_entity).insert(     
+               
+                    FoliageChunkDensityTexture::default() 
+ 
+                );
+
+
+                commands.entity(chunk_entity).insert(     
+               
+                    FoliageChunkYOffsetData {
+                        y_offset_map_data: *y_offset_map_data
+
+
+                    } 
+
+                );
+
+                commands.entity(chunk_entity).insert(     
+               
+                    FoliageChunkYOffsetTexture::default() 
+ 
+                );
+
+            }
+
+
+            }
+        }
+
 }
 
-*/
-
-
 /// set up a simple 3D scene
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands, 
+    asset_server: Res<AssetServer>,
+
+    mut sample_textures_resource: ResMut<SampleTexturesResource>, 
+
+    ) {
     commands
         .spawn(SpatialBundle::default())
-        .insert(RegionsConfig::load_from_file("assets/regions/regions_config.ron").unwrap())
-        .insert(RegionsData::new())
+        .insert(FoliageConfig::load_from_file("assets/foliage/foliage_config.ron").unwrap())
+        .insert(FoliageData::new())
 
         .insert(Visibility::Visible)  // only in editor 
         ;
@@ -101,7 +182,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         //.insert(TerrainViewer::default())
        // .insert(ShadowFilteringMethod::Jimenez14)
        ;
-}
+
+    sample_textures_resource.sample_density_map = asset_server.load("grass_density_map.png");
+    sample_textures_resource.sample_y_offset_map = asset_server.load("grass_y_map.png");
+
+
+}   
 
 fn update_camera_look(
     mut event_reader: EventReader<MouseMotion>,
@@ -182,3 +268,5 @@ fn update_directional_light_position(
         transform.look_at(Vec3::ZERO, Vec3::Y);
     }
 }
+
+ 

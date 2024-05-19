@@ -1,37 +1,95 @@
 
  
+use std::path::PathBuf;
+
+use crate::foliage_config::FoliageConfig;
+use crate::y_offset_map::YOffsetMap;
+use crate::y_offset_map::YOffsetMapU16;
+use crate::density_map::DensityMap;
+use crate::density_map::DensityMapU8;
+
+
 use bevy::render::primitives::Aabb;
 use warbler_grass::prelude::GrassColor;
 use warbler_grass::prelude::WarblerHeight;
 use warbler_grass::prelude::WarblersBundle;
 use bevy::prelude::*;
 
-use crate::density_map::DensityMapU8;
 
 
-pub type HeightMapU8 = Vec<Vec<u8>>; 
+
+#[derive(Default)]
+pub struct FoliageChunkPlugin {
+     
+}
+ 
+impl Plugin for FoliageChunkPlugin {
+    fn build(&self, app: &mut App) {
+         
+        app   //use preUpdate for now to avoid race cond with warbler grass and remove entities ... 
+
+           .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
+           .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
+
+        	.add_systems(PreUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
+        	.add_systems(PreUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
+			.add_systems(PreUpdate ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
+
+        ; 
+         
+    }
+} 
+ 
+ 
 
 
 /*
 Consider using this pattern for the terrain too !   Terrain Chunks height and splat map data for the chunk  should be a component .
 */
 #[derive(Component)]
-pub struct FoliageChunkDensityMap {
+pub struct FoliageChunkDensityData {
 
 	pub density_map_data: DensityMapU8
 
 }
 
 #[derive(Component)]
-pub struct FoliageChunkHeightMap {
+pub struct FoliageChunkYOffsetData {
 
-	pub height_map_data: HeightMapU8
+	pub y_offset_map_data: YOffsetMapU16
 
 }
 
+
+#[derive(Component,Default)]
+pub struct FoliageChunkDensityTexture {
+
+	pub texture: Handle<Image>
+
+}
+
+#[derive(Component,Default)]
+pub struct FoliageChunkYOffsetTexture {
+
+	pub texture: Handle<Image>
+
+}
+
+
+#[derive(Component )]
+pub struct RequestLoadFoliageChunkDensityTexture {
+    pub texture_path:PathBuf
+}
+
+#[derive(Component )]
+pub struct RequestLoadFoliageChunkYOffsetTexture {
+    pub texture_path:PathBuf
+}
+
+
 #[derive(Component)]
 pub struct FoliageChunk {
-    chunk_id: usize ,
+    pub chunk_id: u32 ,
  
     
 } 
@@ -39,7 +97,7 @@ pub struct FoliageChunk {
 
 impl FoliageChunk {
 
-	pub fn new(chunk_id :usize ) -> Self {
+	pub fn new(chunk_id :u32 ) -> Self {
 
 		Self {
 
@@ -53,6 +111,263 @@ impl FoliageChunk {
 
 
 pub type ChunkCoords = [u32; 2];
+ 
+
+pub trait ChunkCoordinates {
+    fn new(x: u32, y: u32) -> Self;
+
+    fn x(&self) -> u32;
+    fn y(&self) -> u32;
+
+    fn get_chunk_index(&self, chunk_rows: u32) -> u32;
+
+    fn from_location(
+        location: Vec3,
+        terrain_origin: Vec3,
+        terrain_dimensions: Vec2,
+        chunk_rows: u32,
+    ) -> Option<UVec2>;
+    fn to_location(
+        &self,
+        terrain_origin: Vec3,
+        terrain_dimensions: Vec2,
+        chunk_rows: u32,
+    ) -> Option<Vec3>;
+
+    fn from_chunk_id(chunk_id: u32, chunk_rows: u32) -> Self;
+    fn get_location_offset(&self, chunk_dimensions: Vec2) -> Vec3;
+
+    fn get_heightmap_subsection_bounds_pct(&self, chunk_rows: u32) -> [[f32; 2]; 2];
+}
+
+
+impl ChunkCoordinates for ChunkCoords {
+    fn new(x: u32, y: u32) -> Self {
+        [x, y]
+    }
+
+    fn x(&self) -> u32 {
+        self[0]
+    }
+    fn y(&self) -> u32 {
+        self[1]
+    }
+
+    //chunk index is   chunk_col * 64  + chunk_row   IF chunk_rows is 64
+    fn get_chunk_index(&self, chunk_rows: u32) -> u32 {
+        return self.y() * chunk_rows + self.x() as u32;
+    }
+
+    fn from_chunk_id(chunk_id: u32, chunk_rows: u32) -> Self {
+        let coords_y = chunk_id / chunk_rows;
+        let coords_x = chunk_id % chunk_rows;
+
+        [coords_x, coords_y]
+    }
+
+    fn get_location_offset(&self, chunk_dimensions: Vec2) -> Vec3 {
+        Vec3::new(
+            chunk_dimensions.x * self.x() as f32,
+            0.0,
+            chunk_dimensions.y * self.y() as f32,
+        )
+    }
+
+    fn from_location(
+        from_location: Vec3,
+        terrain_origin: Vec3,
+        terrain_dimensions: Vec2,
+        chunk_rows: u32,
+    ) -> Option<UVec2> {
+        let location_delta = from_location - terrain_origin;
+
+        //let terrain_min = terrain_origin;
+        //let terrain_max = terrain_origin + Vec3::new(terrain_dimensions.x, 0.0, terrain_dimensions.y);
+
+        // Check if from_location is within the terrain bounds
+        if location_delta.x >= 0.0
+            && location_delta.x <= terrain_dimensions.x
+            && location_delta.z >= 0.0
+            && location_delta.z <= terrain_dimensions.y
+        {
+            // Calculate the chunk's x and z coordinates
+            let chunk_x = (location_delta.x / terrain_dimensions.x * chunk_rows as f32) as u32;
+            let chunk_z = (location_delta.z / terrain_dimensions.y * chunk_rows as f32) as u32;
+
+            return Some(UVec2::new(chunk_x, chunk_z));
+        }
+
+        None
+    }
+
+    //returns the middle of the chunk
+    fn to_location(
+        &self,
+        terrain_origin: Vec3,
+        terrain_dimensions: Vec2,
+        chunk_rows: u32,
+    ) -> Option<Vec3> {
+        // Ensure chunk coordinates are within bounds
+        if self.x() < chunk_rows && self.y() < chunk_rows {
+            // Calculate the dimensions of a single chunk
+            let chunk_dim_x = terrain_dimensions.x / chunk_rows as f32;
+            let chunk_dim_z = terrain_dimensions.y / chunk_rows as f32;
+
+            // Calculate world location for the bottom-left corner of the chunk
+            let world_x = terrain_origin.x + self.x() as f32 * chunk_dim_x + chunk_dim_x / 2.0;
+            let world_z = terrain_origin.z + self.y() as f32 * chunk_dim_z + chunk_dim_z / 2.0;
+
+            return Some(Vec3::new(world_x, terrain_origin.y, world_z));
+        }
+
+        None
+    }
+
+    fn get_heightmap_subsection_bounds_pct(&self, chunk_rows: u32) -> [[f32; 2]; 2] {
+        let chunk_x = self.x();
+        let chunk_y = self.y();
+
+        let pct_per_row = 1.0 / chunk_rows as f32;
+
+        return [
+            [chunk_x as f32 * pct_per_row, chunk_y as f32 * pct_per_row], //start corner x and y
+            [
+                (chunk_x + 1) as f32 * pct_per_row,
+                (chunk_y + 1) as f32 * pct_per_row,
+            ], //end corner x and y
+        ];
+    }
+}
+
+
+
+
+
+
+fn load_chunk_density_texture(
+
+    mut commands: Commands, 
+   
+      chunks_query: Query< 
+    ( Entity,   & RequestLoadFoliageChunkDensityTexture)  
+     >,
+
+     asset_server: Res<AssetServer> 
+
+ 
+){
+
+    for (chunk_entity, load_texture_request ) in chunks_query.iter(){
+
+        let texture :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+
+          commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
+            texture
+          } );
+
+          commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkDensityTexture>();
+
+    }   
+
+
+}
+
+
+
+
+
+fn load_chunk_y_offset_texture(
+
+      mut commands: Commands, 
+
+      chunks_query: Query< 
+    ( Entity,   & RequestLoadFoliageChunkYOffsetTexture)  
+     >,
+
+      asset_server: Res<AssetServer> 
+
+
+){ 
+
+    for (chunk_entity, load_texture_request ) in chunks_query.iter(){
+
+          let texture :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+
+          commands.entity(chunk_entity).insert( FoliageChunkYOffsetTexture {
+            texture
+          } );
+
+          commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkYOffsetTexture>();
+        
+    }
+
+
+
+}
+
+
+
+fn rebuild_chunk_density_texture( 	
+
+    mut commands: Commands, 
+	  asset_server: ResMut<AssetServer> , 
+
+	  chunks_query: Query< 
+	  (  Entity,&FoliageChunkDensityData) , 
+	(   With<FoliageChunk>, Changed<FoliageChunkDensityData>   ),
+
+
+	>
+
+) {
+
+	for  (chunk_entity, density_data_comp)  in chunks_query.iter () {
+ 
+		let density_tex_image = density_data_comp.density_map_data.to_image(); 
+
+	    
+
+        commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
+            texture: asset_server.add( density_tex_image ) 
+         } );
+
+
+	} 
+
+
+ }  
+
+
+
+
+fn rebuild_chunk_y_offset_texture( 
+
+      mut commands: Commands, 
+	  asset_server: ResMut<AssetServer> , 
+
+	  chunks_query: Query< 
+	  (Entity, &FoliageChunkYOffsetData ) , 
+	(   With<FoliageChunk>, Changed<FoliageChunkYOffsetData>   )
+	>
+
+ ) {
+
+	 for   (chunk_entity,y_offset_data_comp)  in chunks_query.iter() {
+  
+		let y_offset_tex_image = y_offset_data_comp.y_offset_map_data.to_image(); 
+
+		//chunk_y_offset_texture_comp.texture = asset_server.add( density_tex_image );
+
+ 
+        commands.entity(chunk_entity).insert( FoliageChunkYOffsetTexture {
+            texture: asset_server.add( y_offset_tex_image ) 
+         } );
+ 
+	} 
+
+
+ }  
+
 
 
 
@@ -64,17 +379,21 @@ pub type ChunkCoords = [u32; 2];
 fn rebuild_chunks(  
 	mut commands: Commands, 
 	chunks_query: Query< 
-	(Entity,&FoliageChunk, &FoliageChunkDensityMap, &FoliageChunkHeightMap), 
-	Or< (Changed<FoliageChunkDensityMap>, Changed<FoliageChunkHeightMap>) >     
-	>
+	(Entity,&FoliageChunk, &FoliageChunkDensityTexture, &FoliageChunkYOffsetTexture), 
+	Or< (Changed<FoliageChunkDensityTexture>, Changed<FoliageChunkYOffsetTexture>) >     
+	>,
+
+
+      mut meshes: ResMut<Assets<Mesh>>, 
+    mut materials: ResMut<Assets<StandardMaterial>>,
  ) {
 
 
-	for (chunk_entity, foliage_chunk, density_map, height_map) in chunks_query.iter() {
+	for (chunk_entity, foliage_chunk, density_map, y_offset_map) in chunks_query.iter() {
 
 
-		let density_map_data = &density_map.density_map_data ;
-		let height_map_data = &height_map.height_map_data; 
+		let density_map  = &density_map.texture ;
+		let y_offset_map  = &y_offset_map.texture; 
 
 
 		let chunk_dimensions= Vec2::new(256.0,256.0); //make me dynamic 
@@ -83,20 +402,18 @@ fn rebuild_chunks(
 		 commands.entity(chunk_entity).despawn_descendants();
 
 
-		 let chunk_id = foliage_chunk.chunk_id; 
+		  let chunk_id = foliage_chunk.chunk_id; 
 
-		 let offset = Vec3::new(
-            (chunk_id / chunk_dimensions.x as usize) as f32 * chunk_dimensions.x * 1.0,
-            0.,
-            (chunk_id % chunk_dimensions.x as usize) as f32 * chunk_dimensions.y * 1.0,
-        );
+		  info!("rebuild chunk {:?}", chunk_id );
 
+		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
             // we could use seperate density maps for each one
-            density_map: density_map.clone(),
+            density_map: density_map.clone().into(),
             // or seperate height maps if we wanted to
-            y_map: y_map.clone(),
-            height: WarblerHeight::Texture(density_map_handle.clone()),
+            y_map: y_offset_map.clone().into(),
+
+            height: WarblerHeight::Texture(density_map.clone()),
             // the aabb defined the dimensions of the box the chunk lives in
             aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, 2., chunk_dimensions.y)),
             grass_color: GrassColor {
@@ -105,14 +422,36 @@ fn rebuild_chunks(
             },
 
             spatial: SpatialBundle {
-             transform: Transform::from_translation(offset),
+              //  transform: Transform { ..default() },
+
                 ..default()
             },
             ..default()
         }).id();
 
 
+        
+
+/*
+
+
+        let plane =  commands.spawn(PbrBundle {
+                mesh: meshes.add(Plane3d::default().mesh().size(100.0, 100.0)),
+               material: materials.add( Color::SILVER ),
+
+              /* material:  materials.add( StandardMaterial {
+                    base_color_texture: Some( density_map.clone() ) , 
+                ..default()
+               } ) ,
+                */
+
+                ..default()
+            }).id();
+*/
+
+
 		 commands.entity(chunk_entity).add_child( grass_bundle ); 
+   //  commands.entity(chunk_entity).add_child( plane ); 
 
 	}
 

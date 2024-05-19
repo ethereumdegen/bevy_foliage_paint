@@ -87,7 +87,7 @@ impl DensityMap for DensityMapU8 {
             size,
             dimension,
             modified_data,
-            TextureFormat::Rgba8Uint,
+            TextureFormat::Rgba8UnormSrgb,  //??? 
             RenderAssetUsages::default(),
         )
     }
@@ -117,7 +117,7 @@ impl DensityMap for DensityMapU8 {
            
             row.push(image.data[index]  ); //only read the R channel 
         }
-        region_map.push(row);
+        density_map.push(row);
     }
 
     Ok(Box::new(density_map))

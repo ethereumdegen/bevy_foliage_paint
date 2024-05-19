@@ -1,6 +1,12 @@
  
+use std::path::PathBuf;
+use crate::foliage_chunk::RequestLoadFoliageChunkDensityTexture;
+use crate::foliage_chunk::RequestLoadFoliageChunkYOffsetTexture;
+use crate::foliage_chunk::FoliageChunkYOffsetTexture;
+use crate::foliage_chunk::ChunkCoordinates;
 use crate::foliage_chunk::ChunkCoords;
 use crate::foliage_chunk::FoliageChunk;
+use crate::foliage_chunk::FoliageChunkDensityTexture;
 use bevy::asset::{AssetPath, LoadState};
 use bevy::pbr::{ExtendedMaterial, OpaqueRendererMethod};
 use bevy::prelude::*;
@@ -16,6 +22,31 @@ use bevy::utils::HashMap;
 use crate::foliage_config::FoliageConfig;
  
 
+
+
+#[derive(Default)]
+pub struct FoliageDataPlugin {
+     
+}
+ 
+impl Plugin for FoliageDataPlugin {
+    fn build(&self, app: &mut App) {
+         
+        app   
+
+            . init_resource::<FoliageDataMapResource>() 
+
+            .add_systems(Update , initialize_foliage  )
+             
+
+        ; 
+         
+    }
+} 
+ 
+
+
+//used by Edit system !? 
 #[derive(Resource, Default)]
 pub struct FoliageDataMapResource {
     pub density_map_data: Option<DensityMapU8>, // Keyed by chunk id
@@ -33,24 +64,23 @@ pub struct RegionPlaneMesh {
 #[derive(Event)]
 pub enum FoliageDataEvent {
     FoliageNeedsReloadFromResourceData
-} 
-#[derive(Default, PartialEq, Eq)]
-pub enum FoliageDataStatus {
-    //us this for texture image and splat image and alpha mask .. ?
-    #[default]
-    NotLoaded,
-    Loaded,
 }
+
+
+
+//pub struct FoliageChunksLoaded {}
+
+
 
 #[derive(Component, Default)]
 pub struct  FoliageData {
      
-    pub foliage_data_status: FoliageDataStatus,
+   // pub foliage_data_status: FoliageDataStatus,
 
-    texture_image_handle: Option<Handle<Image>>,
-    color_map_texture_handle:  Option<Handle<Image>>,
+   // texture_image_handle: Option<Handle<Image>>,
+   // color_map_texture_handle:  Option<Handle<Image>>,
  
-    foliage_image_data_load_status: bool ,
+    //foliage_image_data_load_status: bool ,
  
 }
 
@@ -74,17 +104,18 @@ impl FoliageData {
 pub fn initialize_foliage(
     mut commands: Commands,
 
-    mut asset_server: ResMut<AssetServer>, 
+  //  mut asset_server: ResMut<AssetServer>, 
 
-    mut foliage_root_query: Query<(Entity, &mut FoliageData, &FoliageConfig)>,
+    foliage_root_query: Query<(Entity,  & FoliageData, &FoliageConfig),
+       Added< FoliageData >>,
 
-    mut meshes: ResMut <Assets<Mesh>>,
+   // mut meshes: ResMut <Assets<Mesh>>,
   //  mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
 
-    mut images: ResMut<Assets<Image>>
+   // mut images: ResMut<Assets<Image>>
 ) {
-    for (foliage_root_entity, mut foliage_data, foliage_config) in foliage_root_query.iter_mut() {
-        if foliage_data.foliage_data_status ==  FoliageDataStatus::NotLoaded {
+    for (foliage_root_entity, foliage_data, foliage_config) in foliage_root_query.iter (){
+        
                 
 
             let max_chunks = foliage_config.chunk_rows * foliage_config.chunk_rows;
@@ -93,13 +124,14 @@ pub fn initialize_foliage(
 
 
 
-                let chunk_coords = ChunkCoords::from_chunk_id(chunk_id, foliage_config.chunk_rows); // [ chunk_id / terrain_config.chunk_rows ,  chunk_id  % terrain_config.chunk_rows];
+                let chunk_coords = ChunkCoords::from_chunk_id(chunk_id  , foliage_config.chunk_rows); // [ chunk_id / terrain_config.chunk_rows ,  chunk_id  % terrain_config.chunk_rows];
                 let chunk_dimensions = foliage_config.get_chunk_dimensions();
 
                 let chunk_name = format!("Chunk {:?}", chunk_id);
 
                 let chunk_entity = commands
                     .spawn(FoliageChunk::new(chunk_id))
+
                     .insert(Name::new(chunk_name))
                     .insert(SpatialBundle {
                         transform: Transform::from_xyz(
@@ -107,30 +139,58 @@ pub fn initialize_foliage(
                             0.0,
                             chunk_coords.y() as f32 * chunk_dimensions.y,
                         ),
-                        visibility: Visibility::Hidden,
+                      //  visibility: Visibility::Hidden,
 
                         ..Default::default()
                     })
                     .id();
+ 
 
-                let mut terrain_entity_commands = commands.get_entity(foliage_root_entity).unwrap();
+                    let density_texture_path: Option<PathBuf> = foliage_config.density_folder_path.as_ref().map(|path| 
+                        path.join(  format!("{}.png", chunk_id.to_string() )  )
+                    ); 
+
+                    if let Some(texture_path) = density_texture_path {
+                        commands.entity(chunk_entity)
+                         .insert(RequestLoadFoliageChunkDensityTexture {
+                            texture_path
+                         });
+                     }
+
+                     let y_offset_texture_path: Option<PathBuf> = foliage_config.grass_y_map_folder_path.as_ref().map(|path| 
+                         path.join(  format!("{}.png", chunk_id.to_string() )  )
+                     ); 
+
+                     if let Some(texture_path) = y_offset_texture_path {
+
+                         commands.entity(chunk_entity)
+                         .insert(RequestLoadFoliageChunkYOffsetTexture {
+                             texture_path
+                         });
+                     }
+
+               // let mut terrain_entity_commands = commands.get_entity(foliage_root_entity).unwrap();
 
                 //terrain_data.chunk_entity_lookup.insert(chunk_id,chunk_entity.clone());
-                terrain_entity_commands.add_child(chunk_entity);
+                //terrain_entity_commands.add_child(chunk_entity);
 
-
+                  commands.entity(foliage_root_entity).add_child(chunk_entity) ;
 
 
             }
 
 
+            commands.entity(foliage_root_entity).insert(Name::new("Foliage Root")) ;
+
+              //commands.entity(foliage_root_entity).insert(FoliageChunksLoaded)
+
          
- 
-            foliage_data.foliage_data_status = FoliageDataStatus::Loaded
-        }
+                  
+            //foliage_data.foliage_data_status = FoliageDataStatus::Loaded
+         
     }
 }
-
+/*
 impl FoliageData {
     pub fn get_density_texture_image(&self) -> &Option<Handle<Image>> {
         &self.texture_image_handle 
@@ -139,7 +199,7 @@ impl FoliageData {
     }
 }
 
-/*
+
 pub fn load_density_texture_from_image(
     mut regions_query: Query<(&mut RegionsData, &RegionsConfig)>,
 

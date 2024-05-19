@@ -62,7 +62,7 @@ impl Plugin for BevyFoliageEditsPlugin {
 
 #[derive(Debug, Clone)]
 pub enum EditingTool {
-    SetFoliageMap { foliage_index: u16 },        // height, radius, save to disk 
+    SetFoliageMap { foliage_index: u8 },        // height, radius, save to disk 
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -140,22 +140,25 @@ pub fn apply_command_events(
                     let density_texture_path = &foliage_config.density_folder_path;
                      
                     
-                //    info!("path {:?}",region_data_path);
+                //   do this in a chunked way ! Per foliage chunk.. like terrain height / splat
                       if let Some(region_data) =
                           &  foliage_map_res.density_map_data
                         {
 
-                        save_density_map_to_disk(
-                                &region_data,
-                                asset_folder_path.join( density_texture_path ),
-                        );
+                            if let Some( density_texture_path )= density_texture_path {
+
+                                save_density_map_to_disk(
+                                        &region_data,
+                                        asset_folder_path.join( density_texture_path ),
+                                );
+                            }
                     }
                      
  
 
                      
 
-                    println!("saved region data ");
+                    println!("saved foliage density maps ");
                 
             }
           }
