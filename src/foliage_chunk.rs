@@ -428,8 +428,6 @@ fn load_chunk_y_offset_texture(
 
     for evt in ev_asset.read(){
 
-
-
         match evt{
          
             AssetEvent::LoadedWithDependencies { id } =>  {
@@ -567,6 +565,8 @@ fn rebuild_chunks(
 
 		  info!("rebuild chunk {:?}", chunk_id );
 
+          let chunk_height = 256.0;
+
 		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
             // we could use seperate density maps for each one
@@ -575,8 +575,11 @@ fn rebuild_chunks(
             y_map: y_offset_map.clone().into(),
 
             height: WarblerHeight::Texture(density_map.clone()),
+
+
+
             // the aabb defined the dimensions of the box the chunk lives in
-            aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, 2., chunk_dimensions.y)),
+            aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, chunk_height, chunk_dimensions.y)),
             grass_color: GrassColor {
                 main_color: color,
                 bottom_color: color * 0.4,
