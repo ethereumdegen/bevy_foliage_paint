@@ -440,6 +440,7 @@ fn load_chunk_y_offset_texture(
 
                         tex_image.texture_descriptor.format = TextureFormat::R8Unorm;
 
+
                           commands.entity(chunk_entity).insert( FoliageChunkYOffsetTexture {
                             texture: load_handle.texture_handle.clone()
                           } );
@@ -537,9 +538,6 @@ fn rebuild_chunk_y_offset_texture(
 
 fn rebuild_chunks(  
 	mut commands: Commands, 
-
-
-    
 	chunks_query: Query< 
 	(Entity,&FoliageChunk, &FoliageChunkDensityTexture, &FoliageChunkYOffsetTexture), 
 	Or< (Changed<FoliageChunkDensityTexture>, Changed<FoliageChunkYOffsetTexture>) >     
@@ -560,6 +558,8 @@ fn rebuild_chunks(
 
 		let chunk_dimensions= Vec2::new(256.0,256.0); //make me dynamic 
 
+        let blade_height = 8.0; //fix me
+
 		let color = Color::rgb(0.2, 0.6, 0.4);
 		 commands.entity(chunk_entity).despawn_descendants();
 
@@ -568,7 +568,7 @@ fn rebuild_chunks(
 
 		  info!("rebuild chunk {:?}", chunk_id );
 
-          let chunk_height = 65536.0;
+          let scale_height = 65536.0;
 
 		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
@@ -577,19 +577,18 @@ fn rebuild_chunks(
             // or seperate height maps if we wanted to
             y_map: y_offset_map.clone().into(),
 
-            height: WarblerHeight::Uniform(1.0),
-
-
+            height: WarblerHeight::Uniform(blade_height),
 
             // the aabb defined the dimensions of the box the chunk lives in
-            aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, chunk_height, chunk_dimensions.y)),
+            aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, scale_height, chunk_dimensions.y)),
             grass_color: GrassColor {
                 main_color: color,
                 bottom_color: color * 0.4,
             },
 
             spatial: SpatialBundle {
-              //  transform: Transform { ..default() },
+                transform: Transform::default()
+                .with_scale(Vec3::new(1.0,1.0,1.0)) , 
 
                 ..default()
             },

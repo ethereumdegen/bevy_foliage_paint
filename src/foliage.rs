@@ -131,7 +131,7 @@ pub fn initialize_foliage(
 
 
 
-                let height_scale =  foliage_config.height_scale  ;
+                let height_scale =  foliage_config.height_scale   ;
 
                 let chunk_entity = commands
                     .spawn(FoliageChunk::new(chunk_id))
