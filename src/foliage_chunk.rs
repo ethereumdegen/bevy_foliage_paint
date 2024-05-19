@@ -1,5 +1,7 @@
 
  
+use bevy::asset::LoadedAsset;
+use bevy::render::render_resource::TextureDescriptor;
 use bevy::render::render_resource::TextureFormat;
 use bevy::render::texture::ImageFormat;
 use bevy::render::texture::ImageLoaderSettings;
@@ -31,8 +33,11 @@ impl Plugin for FoliageChunkPlugin {
          
         app   //use preUpdate for now to avoid race cond with warbler grass and remove entities ... 
 
-           .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
-           .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
+          .add_systems(PreUpdate ,load_chunk_density_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
+           .add_systems(PreUpdate ,load_chunk_y_offset_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
+
+           .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
+           .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
 
         	.add_systems(PreUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
         	.add_systems(PreUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
@@ -84,10 +89,22 @@ pub struct RequestLoadFoliageChunkDensityTexture {
     pub texture_path:PathBuf
 }
 
+
+#[derive(Component )]
+pub struct FoliageChunkDensityTextureLoadHandle {
+    pub texture_handle:Handle<Image>
+}
+
 #[derive(Component )]
 pub struct RequestLoadFoliageChunkYOffsetTexture {
     pub texture_path:PathBuf
 }
+
+#[derive(Component )]
+pub struct FoliageChunkYOffsetTextureLoadHandle {
+    pub texture_handle:Handle<Image>
+}
+
 
 
 #[derive(Component)]
@@ -247,45 +264,32 @@ impl ChunkCoordinates for ChunkCoords {
 
 
 
-fn load_chunk_density_texture(
+fn load_chunk_density_texture_handle(
 
     mut commands: Commands, 
    
       chunks_query: Query< 
     ( Entity,   & RequestLoadFoliageChunkDensityTexture)  
      >,
-        images: Res<Assets<Image>>, 
+      //  images: Res<Assets<Image>>, 
      asset_server: Res<AssetServer> 
 
  
 ){
-
-   /* for (chunk_entity, load_texture_request ) in chunks_query.iter(){
-
-        let texture :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
-
-          commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
-            texture
-          } );
-
-          commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkDensityTexture>();
-
-    }   */
+ 
 
 
     for (chunk_entity, load_texture_request ) in chunks_query.iter(){
  
 
-          let texture_handle :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
-
-          let Some(image) = images.get(&texture_handle) else {continue};
-
-          let Some(density_map_data) = DensityMap::load_from_image(image).ok() else {continue};
-
-       
-          commands.entity(chunk_entity).insert( FoliageChunkDensityData {
-            density_map_data: *density_map_data
+          let texture_handle: Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+            
+          commands.entity(chunk_entity).insert( FoliageChunkDensityTextureLoadHandle {
+            texture_handle
           } );
+
+ 
+ 
 
           //need to change the texture format ?
 
@@ -302,7 +306,7 @@ fn load_chunk_density_texture(
 
 
 
-fn load_chunk_y_offset_texture(
+fn load_chunk_y_offset_texture_handle(
 
       mut commands: Commands, 
 
@@ -310,7 +314,7 @@ fn load_chunk_y_offset_texture(
     ( Entity,   & RequestLoadFoliageChunkYOffsetTexture)  
      >,
 
-     images: Res<Assets<Image>>, 
+ //    images: Res<Assets<Image>>, 
 
       asset_server: Res<AssetServer> 
 
@@ -320,17 +324,14 @@ fn load_chunk_y_offset_texture(
     for (chunk_entity, load_texture_request ) in chunks_query.iter(){
  
 
-          let texture_handle :Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
+          let texture_handle: Handle<Image> = asset_server.load(  load_texture_request.texture_path.clone() );
 
-          let Some(image) = images.get(&texture_handle) else {continue};
-
-          let Some(y_offset_map_data) = YOffsetMap::load_from_image(image).ok() else {continue};
-
-       
-          commands.entity(chunk_entity).insert( FoliageChunkYOffsetData {
-            y_offset_map_data: *y_offset_map_data
+          commands.entity(chunk_entity).insert( FoliageChunkYOffsetTextureLoadHandle {
+            texture_handle
           } );
 
+
+       
           //need to change the texture format ?
 
           commands.entity(chunk_entity).remove::<RequestLoadFoliageChunkYOffsetTexture>();
@@ -341,6 +342,130 @@ fn load_chunk_y_offset_texture(
 
 }
 
+
+
+
+fn load_chunk_density_texture(
+
+    mut commands: Commands, 
+
+      mut ev_asset: EventReader<AssetEvent<Image>>,
+
+
+   
+      chunks_query: Query< 
+    ( Entity,   &  FoliageChunkDensityTextureLoadHandle)  
+     >,
+       mut images: ResMut<Assets<Image>>, 
+    // asset_server: Res<AssetServer> 
+
+ 
+){
+
+
+    for evt in ev_asset.read(){
+
+
+
+        match evt{
+         
+            AssetEvent::LoadedWithDependencies { id } =>  {
+
+                for (chunk_entity, load_handle) in chunks_query.iter(){
+
+                    if id ==  &load_handle.texture_handle.id() {
+
+                        let Some(  tex_image) = images.get_mut( &load_handle.texture_handle ) else {continue};
+
+                        //this is messed up 
+                        tex_image.texture_descriptor.format = TextureFormat::R8Unorm;
+
+                          commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
+                            texture: load_handle.texture_handle.clone()
+                          } );
+
+                       commands.entity(chunk_entity).remove::<FoliageChunkDensityTextureLoadHandle>();
+        
+
+                    }
+
+
+                }
+
+
+
+            },
+
+            _ => {}
+        }
+
+    }
+   
+
+
+}
+
+
+
+
+fn load_chunk_y_offset_texture(
+
+    mut commands: Commands, 
+
+      mut ev_asset: EventReader<AssetEvent<Image>>,
+
+
+   
+      chunks_query: Query< 
+    ( Entity,   &  FoliageChunkYOffsetTextureLoadHandle)  
+     >,
+       mut images: ResMut<Assets<Image>>, 
+    // asset_server: Res<AssetServer> 
+
+ 
+){
+
+
+    for evt in ev_asset.read(){
+
+
+
+        match evt{
+         
+            AssetEvent::LoadedWithDependencies { id } =>  {
+
+                for (chunk_entity, load_handle) in chunks_query.iter(){
+
+                    if id ==  &load_handle.texture_handle.id() {
+
+                        let Some(  tex_image) = images.get_mut( &load_handle.texture_handle ) else {continue};
+
+                        tex_image.texture_descriptor.format = TextureFormat::R8Unorm;
+
+                          commands.entity(chunk_entity).insert( FoliageChunkYOffsetTexture {
+                            texture: load_handle.texture_handle.clone()
+                          } );
+
+                       commands.entity(chunk_entity).remove::<FoliageChunkDensityTextureLoadHandle>();
+        
+
+                    }
+
+
+                }
+
+
+
+            },
+
+            _ => {}
+        }
+
+    }
+   
+
+
+}
 
 
 fn rebuild_chunk_density_texture( 	
