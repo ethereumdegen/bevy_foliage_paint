@@ -1,5 +1,6 @@
 
  
+use warbler_grass::prelude::DensityMap as WarblerDensityMap;
 use bevy::asset::LoadedAsset;
 use bevy::render::render_resource::TextureDescriptor;
 use bevy::render::render_resource::TextureFormat;
@@ -129,6 +130,8 @@ impl FoliageChunk {
 
 }
 
+#[derive(Component)]
+pub struct WarblerGrass;
 
 pub type ChunkCoords = [u32; 2];
  
@@ -377,8 +380,8 @@ fn load_chunk_density_texture(
 
                         let Some(  tex_image) = images.get_mut( &load_handle.texture_handle ) else {continue};
 
-                        //this is messed up 
-                        tex_image.texture_descriptor.format = TextureFormat::R8Unorm;
+                        //this is messed up  ??? 
+                     //   tex_image.texture_descriptor.format = TextureFormat::R8Unorm;
 
                           commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
                             texture: load_handle.texture_handle.clone()
@@ -487,7 +490,7 @@ fn rebuild_chunk_density_texture(
 
 	    
 
-        commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
+         commands.entity(chunk_entity).insert( FoliageChunkDensityTexture {
             texture: asset_server.add( density_tex_image ) 
          } );
 
@@ -558,9 +561,9 @@ fn rebuild_chunks(
 
 		let chunk_dimensions= Vec2::new(256.0,256.0); //make me dynamic 
 
-        let blade_height = 16.0; //fix me
+        //let blade_height = 16.0; //fix me
 
-		let color = Color::rgb(0.2, 0.6, 0.4);
+		let color = Color::rgb(0.3, 0.4, 0.1);
 		 commands.entity(chunk_entity).despawn_descendants();
 
 
@@ -571,14 +574,21 @@ fn rebuild_chunks(
           //65536
           let scale_height = 256.0;
 
+          let density_scale_factor = 2.5;
+
 		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
             // we could use seperate density maps for each one
-            density_map: density_map.clone().into(),
+            density_map: WarblerDensityMap {
+                    density_map: density_map.clone(),
+                    density: density_scale_factor,
+                },
+
+ //   density_map.clone().into(),
             // or seperate height maps if we wanted to
             y_map: y_offset_map.clone().into(),
 
-            height: WarblerHeight::Uniform( 10.0 ),
+            height: WarblerHeight::Uniform( 2.0 ),
 
             // the aabb defined the dimensions of the box the chunk lives in
             aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, scale_height, chunk_dimensions.y)),
@@ -596,7 +606,7 @@ fn rebuild_chunks(
             ..default()
         }).id();
 
-
+         commands.entity(grass_bundle).insert( WarblerGrass  );
         
 
 /*

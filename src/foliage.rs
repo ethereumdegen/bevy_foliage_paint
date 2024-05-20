@@ -1,4 +1,8 @@
  
+use crate::foliage_chunk::WarblerGrass;
+use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::PrimitiveTopology;
+use bevy::render::mesh::Indices;
 use std::path::PathBuf;
 use crate::foliage_chunk::RequestLoadFoliageChunkDensityTexture;
 use crate::foliage_chunk::RequestLoadFoliageChunkYOffsetTexture;
@@ -21,7 +25,8 @@ use bevy::utils::HashMap;
  
 use crate::foliage_config::FoliageConfig;
  
-
+ #[derive(Component)]
+struct UpdatedGrassMesh ;
 
 
 #[derive(Default)]
@@ -36,7 +41,10 @@ impl Plugin for FoliageDataPlugin {
 
             . init_resource::<FoliageDataMapResource>() 
 
-            .add_systems(Update , initialize_foliage  )
+            .add_systems(Update , (
+                initialize_foliage,
+                replace_grass_mesh
+                )  )
              
 
         ; 
@@ -65,6 +73,9 @@ pub struct RegionPlaneMesh {
 pub enum FoliageDataEvent {
     FoliageNeedsReloadFromResourceData
 }
+
+
+ pub const CUSTOM_GRASS_MESH_HANDLE: Handle<Mesh> = Handle::weak_from_u128(7_257_128_457_583_957_921);
 
 
 
@@ -109,11 +120,18 @@ pub fn initialize_foliage(
     foliage_root_query: Query<(Entity,  & FoliageData, &FoliageConfig),
        Added< FoliageData >>,
 
-   // mut meshes: ResMut <Assets<Mesh>>,
+    mut meshes: ResMut <Assets<Mesh>>,
   //  mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
 
    // mut images: ResMut<Assets<Image>>
 ) {
+
+
+  
+    meshes.insert(CUSTOM_GRASS_MESH_HANDLE, custom_grass_mesh());
+
+
+
     for (foliage_root_entity, foliage_data, foliage_config) in foliage_root_query.iter (){
         
                 
@@ -196,6 +214,75 @@ pub fn initialize_foliage(
          
     }
 }
+
+
+
+
+/*
+    original: 
+        vec![
+            [0., 0., 0.],
+            [0.5, 0., 0.],
+            [0.25, 0., 0.4],
+            [0.25, 1., 0.15],
+        ],
+
+*/
+
+const GRASS_WIDTH:f32 = 1.6;
+const GRASS_HEIGHT:f32 = 1.0;
+
+fn custom_grass_mesh() -> Mesh {
+    let mut grass_mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    );
+    grass_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
+        vec![
+            [0., 0., 0.],
+            [0.1*GRASS_WIDTH, 0., 0.],
+            [0.05*GRASS_WIDTH, 0., 0.08*GRASS_WIDTH],
+            [0.05*GRASS_WIDTH, 1.0 * GRASS_HEIGHT, 0.03*GRASS_WIDTH],
+        ],
+    );
+    grass_mesh.insert_indices(Indices::U32(vec![1, 0, 3, 2, 1, 3, 0, 2, 3]));
+    grass_mesh
+}
+
+
+fn replace_grass_mesh(
+    mut commands: Commands,
+     grass_query: Query< Entity, (With< WarblerGrass>,Without<UpdatedGrassMesh>) >
+
+  ) {
+
+    for grass_entity in grass_query.iter(){
+
+        commands.entity(grass_entity).insert((CUSTOM_GRASS_MESH_HANDLE,UpdatedGrassMesh));
+
+    }
+}
+
+
+/*
+
+fn change_colors(mut grass_colors: Query<&mut GrassColor>, time: Res<Time>) {
+    // Most likely you'd want to choose other colors
+    let r = ((time.elapsed_seconds() / 2.).sin() / 2.) + 0.5;
+    let g = 1. - r;
+    for mut color in &mut grass_colors {
+        color.main_color.set_r(r);
+        color.main_color.set_g(g);
+        color.main_color.set_b((g * r).sin());
+        // the bottom color should normally be a bit darker than the main color.
+        color.bottom_color = color.main_color * 0.5;
+    }
+}
+
+
+*/
+
 /*
 impl FoliageData {
     pub fn get_density_texture_image(&self) -> &Option<Handle<Image>> {
