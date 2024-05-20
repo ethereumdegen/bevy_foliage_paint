@@ -40,6 +40,11 @@ impl Plugin for FoliageChunkPlugin {
            .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
            .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
 
+        .add_systems(PreUpdate ,add_chunk_density_data_from_texture.run_if( any_with_component::< FoliageChunk> )  )
+
+ 
+
+
         	.add_systems(PreUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
         	.add_systems(PreUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
 			.add_systems(PreUpdate ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
@@ -347,15 +352,44 @@ fn load_chunk_y_offset_texture_handle(
 
 
 
+fn add_chunk_density_data_from_texture(
+    mut commands:Commands, 
+    chunks_query: Query< 
+        ( Entity,     &  FoliageChunkDensityTexture)  , Without<FoliageChunkDensityData>
+         >,
+
+    image_assets: Res<Assets<Image>> ,
+
+){
+
+    for (chunk_entity, density_texture) in chunks_query.iter(){
+
+        let Some(density_data_image) = image_assets.get(&density_texture.texture) else {continue} ;
+
+
+        let raw_data_option :Option<Box<Vec<Vec<u8>>>> = DensityMap::load_from_image(density_data_image).ok();
+
+        let Some(raw_data) =  raw_data_option else {continue};
+
+
+        commands.entity(chunk_entity).insert( FoliageChunkDensityData{
+            density_map_data: *raw_data
+        } );
+
+
+
+    }
+
+}
+
+
 
 fn load_chunk_density_texture(
 
-    mut commands: Commands, 
+     mut commands: Commands, 
 
       mut ev_asset: EventReader<AssetEvent<Image>>,
-
-
-   
+ 
       chunks_query: Query< 
     ( Entity,   &  FoliageChunkDensityTextureLoadHandle)  
      >,

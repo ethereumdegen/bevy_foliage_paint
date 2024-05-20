@@ -1,4 +1,7 @@
+use crate::foliage_chunk::ChunkCoordinates;
+use crate::foliage_chunk::FoliageChunk;
 use crate::density_map::DensityMapU8;
+use crate::foliage_chunk::FoliageChunkDensityData;
 use std::fs::File;
 use std::io::BufWriter;
 use std::ops::{Add, Div, Neg};
@@ -91,7 +94,8 @@ impl Display for BrushType {
 // entity, editToolType, coords, magnitude
 #[derive(Event, Debug, Clone)]
 pub struct EditFoliageEvent {
-    pub entity: Entity, //should always be the plane 
+
+   // pub entity: Entity, //should always be the plane 
     pub tool: EditingTool,
     pub radius: f32,
     pub brush_hardness: f32, //1.0 is full
@@ -183,11 +187,12 @@ pub fn apply_tool_edits(
 
    
 
-    mut foliage_map_data_res: ResMut<FoliageDataMapResource>,
+    //mut foliage_map_data_res: ResMut<FoliageDataMapResource>,
  
      // region_plane_mesh_query: Query<(Entity,   &GlobalTransform), With<RegionPlaneMesh>>,
 
-
+     mut foliage_chunk_query: Query<(Entity, &FoliageChunk, &mut FoliageChunkDensityData,   &Parent, &GlobalTransform)>, //chunks parent should have terrain data
+   
 
     mut ev_reader: EventReader<EditFoliageEvent>,
 
@@ -206,7 +211,7 @@ pub fn apply_tool_edits(
 
 
 
-        let intersected_entity = &ev.entity;
+        //let intersected_entity = &ev.entity;
 
        
     /*   let Some((region_plane_entity,  _ )) = region_plane_mesh_query.get(intersected_entity.clone()).ok() else {
@@ -223,7 +228,38 @@ pub fn apply_tool_edits(
              let tool_coords: &Vec2 = &ev.coordinates;
              info!("tool coords {:?}", tool_coords);
 
+             // need to find chunk id here ! i think. 
+
             
+
+
+            let mut chunk_entities_within_range: Vec<Entity> = Vec::new();
+
+            let mut chunk_dimensions = [256, 256]; //compute me from terrain config
+         
+
+
+               //populate chunk_entities_within_range
+            for (chunk_entity, _, _, _, chunk_transform) in foliage_chunk_query.iter() {
+                let tool_coords: &Vec2 = &ev.coordinates;
+                let chunk_transform = chunk_transform.translation();
+                let chunk_transform_vec2: Vec2 = Vec2::new(chunk_transform.x, chunk_transform.z);
+
+                let chunk_dimensions_vec: Vec2 =
+                    Vec2::new(chunk_dimensions.x() as f32, chunk_dimensions.y() as f32);
+                let chunk_center_transform =
+                    chunk_transform_vec2.add(chunk_dimensions_vec.div(2.0));
+
+                let chunk_local_distance = tool_coords.distance(chunk_center_transform);
+
+                if chunk_local_distance < 800.0 {
+                    chunk_entities_within_range.push(chunk_entity);
+                }
+            }
+
+
+
+
 
             
             let average_height = 0; //for now  // total_height as f32 / heights_len as f32;
@@ -233,36 +269,52 @@ pub fn apply_tool_edits(
 
               info!("Region Set Exact 1 ");
 
-               let Some(foliage_map_data) =
+              /* let Some(foliage_map_data) =
                                 &mut foliage_map_data_res.density_map_data
                             else {
                                 warn!("density data map is null ");
                                 continue
-                            }; 
+                            }; */
 
-              let mut foliage_density_map_changed = false;
+             // let mut foliage_density_map_changed = false;
 
             let brush_hardness = &ev.brush_hardness;
             
-               
+             for chunk_entity_within_range in chunk_entities_within_range {
+                if let Some((
+                    chunk_entity,
+                    chunk,
+                    mut chunk_density_data,
+                    terrain_entity,
+                    chunk_transform,
+                )) = foliage_chunk_query.get_mut(chunk_entity_within_range.clone()).ok()
+                {
+
+                    
+                            
+
+                              
                     match &ev.tool {
                         EditingTool::SetFoliageDensity { density } => {
-                              
+
 
                                 let tool_coords: &Vec2 = &ev.coordinates;
 
 
+                                let chunk_transform = chunk_transform.translation();
+                                let chunk_transform_vec2: Vec2 =
+                                    Vec2::new(chunk_transform.x, chunk_transform.z);
 
-                                let tool_coords_local: &Vec2 = &ev.coordinates;
+                                let tool_coords_local = tool_coords.add(chunk_transform_vec2.neg());
 
-                          
-                                //need to make an array of all of the data indices of the terrain that will be set .. hm ?
-                                let img_data_length = foliage_map_data.len();
-
-
+ 
+                                // let mut density_changed = false;
                                 let radius_clone = radius.clone();
 
-                                info!("Region Set Exact 2 ");
+
+                            let density_map_data = &mut chunk_density_data.density_map_data;
+                             let img_data_length = density_map_data.len();
+
 
                                 match brush_type {
                                     BrushType::SetExact => {
@@ -277,36 +329,31 @@ pub fn apply_tool_edits(
                                                     radius_clone,
                                                     *brush_hardness,
                                                 );
-                                                let original_region_index = region_map_data[y][x];
+                                                let original_density = density_map_data[y][x];
 
 
                                                  //  info!("tool_coords_local {:?} ", tool_coords_local);
 
 
+                                                
                                                 if tool_coords_local.distance(local_coords)
                                                     < radius_clone
                                                 {
-                                                    let new_region_index = region_index.clone();
-
-
-                                                    region_map_data[y][x] =
+                                                    let new_density = density.clone();
+                                                    density_map_data[y][x] =
                                                         apply_hardness_multiplier(
-                                                            original_region_index as f32,
-                                                            new_region_index as f32,
+                                                            original_density as f32,
+                                                            new_density as f32,
                                                             hardness_multiplier,
                                                         )
                                                             as u8;
-                                                    region_index_map_changed = true;
-
-                                                   // info!("region_index_map_changed {:?} ",new_region_index);
-
-
+                                                  //  density_changed = true;
                                                 }
                                             }
                                         }
                                     }
 
-                                    BrushType::Smooth => {
+                                   /* BrushType::Smooth => {
                                         for x in 0..img_data_length {
                                             for y in 0..img_data_length {
                                                 let local_coords = Vec2::new(x as f32, y as f32);
@@ -321,25 +368,25 @@ pub fn apply_tool_edits(
                                                             *brush_hardness,
                                                         );
 
-                                                    let original_region_index = region_map_data[y][x];
+                                                    let original_density = density_map_data[y][x];
                                                     // Gather heights of the current point and its neighbors within the brush radius
 
-                                                    let new_region_index = ((average_height as f32
-                                                        + original_region_index as f32)
+                                                    let new_density = ((average_density
+                                                        + original_density as f32)
                                                         / 2.0)
-                                                        as u8;
-                                                    region_map_data[y][x] =
+                                                        as u16;
+                                                    density_map_data[y][x] =
                                                         apply_hardness_multiplier(
-                                                            original_region_index as f32,
-                                                            new_region_index as f32,
+                                                            original_density as f32,
+                                                            new_density as f32,
                                                             hardness_multiplier,
                                                         )
                                                             as u8;
-                                                    region_index_map_changed = true;
+                                                    //height_changed = true;
                                                 }
                                             }
                                         }
-                                    }
+                                    }*/
 
                                      
 
@@ -353,14 +400,18 @@ pub fn apply_tool_edits(
                                             if x < img_data_length && y < img_data_length {
                                               
 
-                                                let local_index_data = region_map_data[y][x];
+                                                let local_data = density_map_data[y][x];
                                                 evt_writer.send(
-                                                    RegionBrushEvent::EyeDropRegionIndex   {
-                                                        region_index: local_index_data,
+                                                    FoliageBrushEvent::EyeDropFoliageDensity  {
+                                                        density: local_data,
                                                     },
                                                 );
                                             }
                                         
+                                    }
+
+                                    _ => {
+                                        warn!("tool not impl ! ");
                                     }
                                 }
 
@@ -372,8 +423,10 @@ pub fn apply_tool_edits(
 
 
                     } //match
+
+                }// query iter 
                 
-              if foliage_density_map_changed {
+             /* if foliage_density_map_changed {
 
                              
 
@@ -381,9 +434,9 @@ pub fn apply_tool_edits(
 
                                          FoliageDataEvent::FoliageNeedsReloadFromResourceData
                                     );
-
-                       }
-    }
+                }*/
+     }
+ }
 } 
 
 
