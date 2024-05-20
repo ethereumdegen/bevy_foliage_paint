@@ -572,7 +572,7 @@ fn rebuild_chunk_y_offset_texture(
 // the warbler grass will be a child of the foliage chunk -- ? 
 
 
-
+// is this necessary ?  bc of the way shader works ? 
 fn rebuild_chunks(  
 	mut commands: Commands, 
 	chunks_query: Query< 
