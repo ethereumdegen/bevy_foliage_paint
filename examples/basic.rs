@@ -1,3 +1,4 @@
+use bevy_foliage_paint::y_offset_map::YOffsetMap;
 use bevy_foliage_paint::density_map::DensityMap;
 use bevy_foliage_paint::density_map::DensityMapU8;
 use bevy_foliage_paint::foliage_chunk::FoliageChunk;
@@ -8,6 +9,7 @@ use bevy::input::mouse::MouseMotion;
 
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::{pbr::ShadowFilteringMethod, prelude::*};
+use bevy_foliage_paint::y_offset_map::YOffsetMapU16;
 use bevy_foliage_paint::{
     foliage::{FoliageData },
     foliage_config::FoliageConfig,
@@ -92,7 +94,7 @@ fn add_sample_data_for_chunks(
              //   let dimensions:Vec2  = Vec2::new(256.0,256.0);
 
                 let density_map_data = DensityMapU8::load_from_image( density_map  ).unwrap();
-                let y_offset_map_data = DensityMapU8::load_from_image( y_offset_map  ).unwrap();
+                let y_offset_map_data = YOffsetMapU16::load_from_image( y_offset_map  ).unwrap();
 
                 commands.entity(chunk_entity).insert( 
 

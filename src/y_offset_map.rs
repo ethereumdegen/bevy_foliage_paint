@@ -62,7 +62,8 @@ impl YOffsetMap for YOffsetMapU16 {
 
         let format = image.texture_descriptor.format;
 
-        if format != TextureFormat::R16Uint {
+        if format != TextureFormat::R16Uint 
+        && format != TextureFormat::Rgba8UnormSrgb {
             println!("heightmap: wrong format {:?}", format);
             return Err(YOffsetMapError::LoadingError);
         }

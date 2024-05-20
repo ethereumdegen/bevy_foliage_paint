@@ -558,7 +558,7 @@ fn rebuild_chunks(
 
 		let chunk_dimensions= Vec2::new(256.0,256.0); //make me dynamic 
 
-        let blade_height = 8.0; //fix me
+        let blade_height = 16.0; //fix me
 
 		let color = Color::rgb(0.2, 0.6, 0.4);
 		 commands.entity(chunk_entity).despawn_descendants();
@@ -568,7 +568,8 @@ fn rebuild_chunks(
 
 		  info!("rebuild chunk {:?}", chunk_id );
 
-          let scale_height = 65536.0;
+          //65536
+          let scale_height = 256.0;
 
 		 	//could make this more efficient by only modifying the handles if the entity alrdy exists ?
 		 let grass_bundle = commands.spawn(WarblersBundle {
@@ -577,7 +578,7 @@ fn rebuild_chunks(
             // or seperate height maps if we wanted to
             y_map: y_offset_map.clone().into(),
 
-            height: WarblerHeight::Uniform(blade_height),
+            height: WarblerHeight::Uniform( 10.0 ),
 
             // the aabb defined the dimensions of the box the chunk lives in
             aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, scale_height, chunk_dimensions.y)),
@@ -588,7 +589,7 @@ fn rebuild_chunks(
 
             spatial: SpatialBundle {
                 transform: Transform::default()
-                .with_scale(Vec3::new(1.0,1.0,1.0)) , 
+                .with_scale(Vec3::new(1.0,256.0,1.0)) , 
 
                 ..default()
             },
