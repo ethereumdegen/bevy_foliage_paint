@@ -560,7 +560,7 @@ fn rebuild_chunks(
 
         let blade_height = 16.0; //fix me
 
-		let color = Color::rgb(0.2, 0.6, 0.4);
+		let color = Color::rgb(0.25, 0.6, 0.3);
 		 commands.entity(chunk_entity).despawn_descendants();
 
 
@@ -584,7 +584,7 @@ fn rebuild_chunks(
             aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, scale_height, chunk_dimensions.y)),
             grass_color: GrassColor {
                 main_color: color,
-                bottom_color: color * 0.4,
+                bottom_color: color * 0.9,
             },
 
             spatial: SpatialBundle {
