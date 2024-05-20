@@ -53,7 +53,7 @@ impl Plugin for BevyFoliageEditsPlugin {
       app.add_event::<EditFoliageEvent>();
        app.add_event::<FoliageCommandEvent>();
        app.add_event::<FoliageBrushEvent>();
-   //     app.add_systems(Update, apply_tool_edits); // add back in later 
+       app.add_systems(Update, apply_tool_edits); // add back in later 
         app.add_systems(Update, apply_command_events);
 
 
@@ -62,7 +62,8 @@ impl Plugin for BevyFoliageEditsPlugin {
 
 #[derive(Debug, Clone)]
 pub enum EditingTool {
-    SetFoliageMap { foliage_index: u8 },        // height, radius, save to disk 
+    // SetFoliageIndex { foliage_index: u8 },        // height, radius, save to disk 
+    SetFoliageDensity {density: u8 }
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -100,7 +101,7 @@ pub struct EditFoliageEvent {
 
 #[derive(Event, Debug, Clone)]
 pub enum FoliageBrushEvent {
-    EyeDropFoliageIndex { region_index: u8 },
+    EyeDropFoliageDensity { density: u8 },
   //  EyeDropSplatMap { r: u8, g: u8, b: u8 },
 }
 
@@ -175,29 +176,29 @@ pub fn apply_command_events(
 //need to do this w chunks ... each chunk has density data? and must be linked w height data.. 
 
 
-/*
+ 
 pub fn apply_tool_edits(
   
     foliage_data_query: Query<(&mut FoliageData, &FoliageConfig)> , 
 
    
 
-    mut region_map_data_res: ResMut<FoliageDataMapResource>,
+    mut foliage_map_data_res: ResMut<FoliageDataMapResource>,
  
-     region_plane_mesh_query: Query<(Entity,   &GlobalTransform), With<RegionPlaneMesh>>,
+     // region_plane_mesh_query: Query<(Entity,   &GlobalTransform), With<RegionPlaneMesh>>,
 
 
 
-    mut ev_reader: EventReader<EditRegionEvent>,
+    mut ev_reader: EventReader<EditFoliageEvent>,
 
-    mut evt_writer: EventWriter<RegionBrushEvent>,
+    mut evt_writer: EventWriter<FoliageBrushEvent>,
 
-    mut region_data_event_writer: EventWriter<RegionDataEvent>
+    mut foliage_data_event_writer: EventWriter<FoliageDataEvent>
 ) {
     for ev in ev_reader.read() {
         eprintln!("-- {:?} -- region edit event!", &ev.tool);
 
-       let Some((region_data, region_config)) = region_data_query
+       let Some((foliage_data, foliage_config)) = foliage_data_query
                     .get_single().ok() else {
                           warn!("no regions entity found" );
                         continue
@@ -208,13 +209,13 @@ pub fn apply_tool_edits(
         let intersected_entity = &ev.entity;
 
        
-       let Some((region_plane_entity,  _ )) = region_plane_mesh_query.get(intersected_entity.clone()).ok() else {
+    /*   let Some((region_plane_entity,  _ )) = region_plane_mesh_query.get(intersected_entity.clone()).ok() else {
         warn!("region plane not intersected");
         continue
-    } ;
+    } ;*/
             //let mut chunk_entities_within_range: Vec<Entity> = Vec::new();
 
-            let   plane_dimensions = region_config.boundary_dimensions.clone(); //compute me from  config
+            let boundary_dimensions = foliage_config.boundary_dimensions.clone(); //compute me from  config
           
 
       
@@ -232,34 +233,32 @@ pub fn apply_tool_edits(
 
               info!("Region Set Exact 1 ");
 
-               let Some(region_map_data) =
-                                &mut region_map_data_res.regions_data_map
+               let Some(foliage_map_data) =
+                                &mut foliage_map_data_res.density_map_data
                             else {
-                                warn!("regions data map is null ");
+                                warn!("density data map is null ");
                                 continue
                             }; 
 
-              let mut region_index_map_changed = false;
+              let mut foliage_density_map_changed = false;
 
             let brush_hardness = &ev.brush_hardness;
             
                
                     match &ev.tool {
-                        EditingTool::SetRegionMap { region_index } => {
-                             
-
-
-                           
+                        EditingTool::SetFoliageDensity { density } => {
+                              
 
                                 let tool_coords: &Vec2 = &ev.coordinates;
+
+
 
                                 let tool_coords_local: &Vec2 = &ev.coordinates;
 
                           
                                 //need to make an array of all of the data indices of the terrain that will be set .. hm ?
-                                let img_data_length = region_map_data.len();
+                                let img_data_length = foliage_map_data.len();
 
-                             
 
                                 let radius_clone = radius.clone();
 
@@ -374,18 +373,18 @@ pub fn apply_tool_edits(
 
                     } //match
                 
-              if region_index_map_changed {
+              if foliage_density_map_changed {
 
                              
 
-                                   region_data_event_writer.send(
+                                   foliage_data_event_writer.send(
 
-                                         RegionDataEvent::RegionMapNeedsReloadFromResourceData
+                                         FoliageDataEvent::FoliageNeedsReloadFromResourceData
                                     );
 
-                                }
+                       }
     }
-}*/
+} 
 
 
 
