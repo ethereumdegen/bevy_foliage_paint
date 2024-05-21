@@ -1,3 +1,4 @@
+use crate::density_map::DensityMap;
 use crate::foliage_chunk::ChunkCoordinates;
 use crate::foliage_chunk::FoliageChunk;
 use crate::density_map::DensityMapU8;
@@ -22,7 +23,7 @@ use bevy::prelude::*;
 use core::fmt::{self, Display, Formatter};
 
   
-use crate::foliage::{FoliageDataEvent,    FoliageData,  FoliageDataMapResource};
+use crate::foliage::{FoliageDataEvent,    FoliageData    };
 use crate::foliage_config::FoliageConfig;
  
 
@@ -95,7 +96,7 @@ impl Display for BrushType {
 #[derive(Event, Debug, Clone)]
 pub struct EditFoliageEvent {
 
-   // pub entity: Entity, //should always be the plane 
+    pub entity: Entity, //not used 
     pub tool: EditingTool,
     pub radius: f32,
     pub brush_hardness: f32, //1.0 is full
@@ -122,9 +123,10 @@ pub fn apply_command_events(
    // mut images: ResMut<Assets<Image>>,
     //mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
 
-    mut foliage_map_res: ResMut<FoliageDataMapResource>, //like height map resource 
+  //  mut foliage_map_res: ResMut<FoliageDataMapResource>, //like height map resource 
 
    foliage_data_query: Query<(&FoliageData, &FoliageConfig)>,
+    mut foliage_chunk_query: Query<(&FoliageChunk, &FoliageChunkDensityData)>, //chunks parent should have terrain data
 
     
     mut ev_reader: EventReader<FoliageCommandEvent>,
@@ -141,29 +143,39 @@ pub fn apply_command_events(
             match ev {
                 FoliageCommandEvent::SaveAll => {
                     //let file_name = format!("{}.png", chunk.chunk_id);
-                     let asset_folder_path = PathBuf::from("assets");
-                    let density_texture_path = &foliage_config.density_folder_path;
-                     
+                   let asset_folder_path = PathBuf::from("assets/");
+                     let density_texture_path = &foliage_config.density_folder_path;
                     
-                //   do this in a chunked way ! Per foliage chunk.. like terrain height / splat
-                      if let Some(region_data) =
-                          &  foliage_map_res.density_map_data
-                        {
 
-                            if let Some( density_texture_path )= density_texture_path {
+                    for (foliage_chunk, chunk_density_data) in foliage_chunk_query.iter(){
 
-                                save_density_map_to_disk(
-                                        &region_data,
-                                        asset_folder_path.join( density_texture_path ),
-                                );
-                            }
+                        let chunk_id = foliage_chunk.chunk_id;
+                       
+                        let chunk_density_image_path = 
+
+                        density_texture_path
+                        .as_ref()
+                        .map(|path_root| asset_folder_path.join(  path_root ).join( format!( "{}.png" , chunk_id.to_string() )  )   ) 
+                        ;
+
+
+                        if chunk_density_image_path.is_none(){
+                            warn!("could not save density map to path  {:?}", density_texture_path)
+
+                        }
+
+                        let Some(chunk_density_image_path) = chunk_density_image_path else {continue} ;
+
+                      chunk_density_data.density_map_data .save_density_map_to_disk(
+                                    //    &chunk_density_data.density_map_data,
+                                        chunk_density_image_path,
+                            );
+                          println!("saved foliage density map  ");
                     }
-                     
- 
+                    
+                      
 
-                     
-
-                    println!("saved foliage density maps ");
+                   
                 
             }
           }
@@ -469,7 +481,7 @@ fn apply_hardness_multiplier(
 
  
 // outputs as R16 grayscale
-pub fn save_density_map_to_disk<P>(
+/*pub fn save_density_map_to_disk<P>(
     density_map_data: &DensityMapU8, // Adjusted for direct Vec<Vec<u16>> input
     save_file_path: P,
 ) where
@@ -496,3 +508,4 @@ pub fn save_density_map_to_disk<P>(
         .write_image_data(&buffer)
         .expect("Failed to write PNG data");
 }
+*/

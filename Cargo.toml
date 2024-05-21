@@ -2,7 +2,7 @@
 name = "bevy_foliage_paint"
 description = "A foliage painting system using warbler grass"
  
-version = "0.13.4"
+version = "0.13.6"
  
  
 edition = "2021"

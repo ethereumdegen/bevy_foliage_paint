@@ -39,7 +39,7 @@ impl Plugin for FoliageDataPlugin {
          
         app   
 
-            . init_resource::<FoliageDataMapResource>() 
+         //   . init_resource::<FoliageDataMapResource>() 
 
             .add_systems(Update , (
                 initialize_foliage,
@@ -55,10 +55,10 @@ impl Plugin for FoliageDataPlugin {
 
 
 //used by Edit system !? 
-#[derive(Resource, Default)]
+/*#[derive(Resource, Default)]
 pub struct FoliageDataMapResource {
     pub density_map_data: Option<DensityMapU8>, // Keyed by chunk id
-}
+}*/
 
 
 
