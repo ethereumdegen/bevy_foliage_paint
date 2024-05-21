@@ -34,20 +34,20 @@ impl Plugin for FoliageChunkPlugin {
          
         app   //use preUpdate for now to avoid race cond with warbler grass and remove entities ... 
 
-          .add_systems(PreUpdate ,load_chunk_density_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
-           .add_systems(PreUpdate ,load_chunk_y_offset_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
+          .add_systems(Update ,load_chunk_density_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
+           .add_systems(Update ,load_chunk_y_offset_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
 
-           .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
-           .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
+           .add_systems(Update ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
+           .add_systems(Update ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
 
-        .add_systems(PreUpdate ,add_chunk_density_data_from_texture.run_if( any_with_component::< FoliageChunk> )  )
+        .add_systems(Update ,add_chunk_density_data_from_texture.run_if( any_with_component::< FoliageChunk> )  )
 
  
 
 
-        	.add_systems(PreUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
-        	.add_systems(PreUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
-			.add_systems(PreUpdate ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
+        	.add_systems(Update ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
+        	.add_systems(Update ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
+			.add_systems(Update ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
 
         ; 
          
@@ -482,7 +482,7 @@ fn load_chunk_y_offset_texture(
                             texture: load_handle.texture_handle.clone()
                           } );
 
-                       commands.entity(chunk_entity).remove::<FoliageChunkDensityTextureLoadHandle>();
+                       commands.entity(chunk_entity).remove::<FoliageChunkYOffsetTextureLoadHandle>();
         
 
                     }
