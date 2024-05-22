@@ -259,7 +259,7 @@ fn replace_grass_mesh(
 
     for grass_entity in grass_query.iter(){
 
-        commands.entity(grass_entity).insert((CUSTOM_GRASS_MESH_HANDLE,UpdatedGrassMesh));
+        commands.entity(grass_entity).try_insert((CUSTOM_GRASS_MESH_HANDLE,UpdatedGrassMesh));
 
     }
 }

@@ -4,7 +4,7 @@ use warbler_grass::prelude::DensityMap as WarblerDensityMap;
 use bevy::asset::LoadedAsset;
 use bevy::render::render_resource::TextureDescriptor;
 use bevy::render::render_resource::TextureFormat;
-use bevy::render::texture::ImageFormat;
+
 use bevy::render::texture::ImageLoaderSettings;
  use std::path::PathBuf;
 
@@ -34,20 +34,20 @@ impl Plugin for FoliageChunkPlugin {
          
         app   //use preUpdate for now to avoid race cond with warbler grass and remove entities ... 
 
-          .add_systems(PreUpdate ,load_chunk_density_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
-           .add_systems(PreUpdate ,load_chunk_y_offset_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
+          .add_systems(PostUpdate ,load_chunk_density_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkDensityTexture> )  )
+           .add_systems(PostUpdate ,load_chunk_y_offset_texture_handle.run_if( any_with_component::<RequestLoadFoliageChunkYOffsetTexture> )  )
 
-           .add_systems(PreUpdate ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
-           .add_systems(PreUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
+           .add_systems(PostUpdate ,load_chunk_density_texture.run_if( any_with_component::< FoliageChunkDensityTextureLoadHandle  > )  )
+           .add_systems(PostUpdate ,load_chunk_y_offset_texture.run_if( any_with_component::< FoliageChunkYOffsetTextureLoadHandle> )  )
 
-        .add_systems(PreUpdate ,add_chunk_density_data_from_texture.run_if( any_with_component::< FoliageChunk> )  )
+        .add_systems(PostUpdate ,add_chunk_density_data_from_texture.run_if( any_with_component::< FoliageChunk> )  )
 
  
 
 
-        	.add_systems(PreUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
-        	.add_systems(PreUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
-			.add_systems(PreUpdate ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
+        	.add_systems(PostUpdate ,rebuild_chunk_density_texture.run_if( any_with_component::<FoliageChunk> )  )
+        	.add_systems(PostUpdate ,rebuild_chunk_y_offset_texture.run_if( any_with_component::<FoliageChunk> )  )
+			.add_systems(PostUpdate ,rebuild_chunks.run_if( any_with_component::<FoliageChunk> )  )
 
         ; 
          
