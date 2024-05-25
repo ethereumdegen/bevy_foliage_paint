@@ -283,7 +283,7 @@ pub fn apply_tool_edits(
              for chunk_entity_within_range in chunk_entities_within_range {
                 if let Some((
                     chunk_entity,
-                    chunk,
+                    _chunk,
                     mut chunk_density_data,
                     terrain_entity,
                     chunk_transform,
