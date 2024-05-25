@@ -1,3 +1,6 @@
+use std::io::BufWriter;
+use std::fs::File;
+use std::path::Path;
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
@@ -51,6 +54,13 @@ pub trait DensityMap {
     fn load_from_image(image: &Image) -> Result<Box<Self>, DensityMapError>;
 
     fn to_image(&self) -> Image;
+
+ fn save_density_map_to_disk<P>(
+   &self, // Adjusted for direct Vec<Vec<u16>> input
+    save_file_path: P,
+) where
+    P: AsRef<Path> ;
+
 }
 
 impl DensityMap for DensityMapU8 {
@@ -99,29 +109,61 @@ impl DensityMap for DensityMapU8 {
        
 
          let width = image.size().x as usize;
-    let height = image.size().y as usize;
-    let format = image.texture_descriptor.format;
+        let height = image.size().y as usize;
+        let format = image.texture_descriptor.format;
 
-   if format!= TextureFormat::Rgba8Uint &&  format != TextureFormat::R8Uint && format != TextureFormat::Rgba8Unorm && format != TextureFormat::Rgba8UnormSrgb {
-        println!("DensityMap: wrong format {:?}", format);
-        return Err(DensityMapError::LoadingError);
-    }
-
-    let mut density_map = Vec::with_capacity(height);
-      for y in 0..height {
-       let mut row = Vec::with_capacity(width);
-        
-        for x in 0..width {
-      
-            let index = (y * width + x) * 4;
-           
-            row.push(image.data[index]  ); //only read the R channel 
+       if format!= TextureFormat::Rgba8Uint &&  format != TextureFormat::R8Uint && format != TextureFormat::Rgba8Unorm && format != TextureFormat::Rgba8UnormSrgb {
+            println!("DensityMap: wrong format {:?}", format);
+            return Err(DensityMapError::LoadingError);
         }
-        density_map.push(row);
+
+        let mut density_map = Vec::with_capacity(height);
+          for y in 0..height {
+           let mut row = Vec::with_capacity(width);
+            
+            for x in 0..width {
+          
+                let index = (y * width + x) * 4;
+               
+                row.push(image.data[index]  ); //only read the R channel 
+            }
+            density_map.push(row);
+        }
+
+        Ok(Box::new(density_map))
+
+
     }
 
-    Ok(Box::new(density_map))
+
+ fn save_density_map_to_disk<P>(
+     &self, // Adjusted for direct Vec<Vec<u16>> input
+    save_file_path: P,
+) where
+    P: AsRef<Path>,
+{
+    let density_map_data = self ;
+
+    let height = density_map_data.len();
+    let width = density_map_data.first().map_or(0, |row| row.len());
+   
+    let file = File::create(save_file_path).expect("Failed to create file");
+    let ref mut w = BufWriter::new(file);
+
+    let mut encoder = png::Encoder::new(w, width as u32, height as u32);
+    encoder.set_color(png::ColorType::Grayscale);
+    encoder.set_depth(png::BitDepth::Eight); // Change to 8-bit depth
+    let mut writer = encoder.write_header().expect("Failed to write PNG header");
+
+    // Flatten the Vec<Vec<u8>> to a Vec<u8> for the PNG encoder
+    let buffer: Vec<u8> = density_map_data.iter().flatten().cloned().collect();
+
+    // Write the image data
+    writer
+        .write_image_data(&buffer)
+        .expect("Failed to write PNG data");
+}
 
 
-    }
+
 }

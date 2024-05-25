@@ -2,7 +2,7 @@
 use warbler_grass::prelude::WarblersPlugin;
 use crate::foliage::FoliageDataPlugin;
 use crate::foliage_chunk::FoliageChunkPlugin;
-use crate::foliage::{  FoliageDataEvent, FoliageDataMapResource};
+use crate::foliage::{  FoliageDataEvent };
 use crate::edit::BevyFoliageEditsPlugin;
 //use crate::regions::load_regions_texture_from_image;
  

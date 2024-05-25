@@ -2,7 +2,7 @@
 name = "bevy_foliage_paint"
 description = "A foliage painting system using warbler grass"
  
-version = "0.13.4"
+version = "0.13.8"
  
  
 edition = "2021"
@@ -23,8 +23,12 @@ image = "0.24.7"
 png = "0.17.11"
 ron = "0.8.1"
 serde = { version = "1.0", features = ["derive"] }
-#warbler_grass =  {path="../warbler_grass"}
-  warbler_grass = "0.6.0"
+ 
+#warbler_grass = "0.6.0"
+
+
+
+warbler_grass = { git = "https://github.com/EmiOnGit/warbler_grass", rev = "215874d058df7df030537e37acfbdf197b563745" }
 
 thiserror = "1.0.48"
  

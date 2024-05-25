@@ -1,3 +1,4 @@
+use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy_foliage_paint::y_offset_map::YOffsetMap;
 use bevy_foliage_paint::density_map::DensityMap;
 use bevy_foliage_paint::density_map::DensityMapU8;
@@ -181,6 +182,7 @@ fn setup(
                 .looking_at(Vec3::new(900.0, 0.0, 900.0), Vec3::Y),
             ..default()
         })
+        .insert(DepthPrepass)
         //.insert(TerrainViewer::default())
        // .insert(ShadowFilteringMethod::Jimenez14)
        ;
