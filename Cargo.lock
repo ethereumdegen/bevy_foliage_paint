@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_foliage_paint"
-version = "0.13.8"
+version = "0.13.9"
 dependencies = [
  "anyhow",
  "bevy 0.13.2",
