@@ -1,4 +1,6 @@
+use bevy_obj::ObjPlugin;
 use bevy::core_pipeline::prepass::DepthPrepass;
+use bevy_foliage_paint::foliage::CustomGrassMeshHandleResource;
 use bevy_foliage_paint::y_offset_map::YOffsetMap;
 use bevy_foliage_paint::density_map::DensityMap;
 use bevy_foliage_paint::density_map::DensityMapU8;
@@ -24,7 +26,7 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins,ObjPlugin))
          .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(BevyFoliagePaintPlugin::default())
         .add_systems(Startup, setup)
@@ -35,6 +37,8 @@ fn main() {
 
 
         .add_systems(Update, add_sample_data_for_chunks)
+
+      
 
 
      //   .add_systems(Startup,create_and_save_texture)
@@ -146,6 +150,10 @@ fn setup(
 
     mut sample_textures_resource: ResMut<SampleTexturesResource>, 
 
+    mut custom_grass_mesh_res: ResMut<CustomGrassMeshHandleResource>,
+
+    
+
     ) {
     commands
         .spawn(SpatialBundle::default())
@@ -191,7 +199,13 @@ fn setup(
     sample_textures_resource.sample_y_offset_map = asset_server.load("grass_y_map.png");
 
 
+ 
+   //  custom_grass_mesh_res.grass_mesh_handle = asset_server.load("grass_4.obj");
+
+   
+ 
 }   
+ 
 
 fn update_camera_look(
     mut event_reader: EventReader<MouseMotion>,

@@ -728,6 +728,7 @@ dependencies = [
  "bevy 0.13.2",
  "bevy-inspector-egui",
  "bevy_mod_sysfail",
+ "bevy_obj",
  "futures-lite 1.13.0",
  "image 0.24.9",
  "png",
@@ -1050,6 +1051,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.61",
+]
+
+[[package]]
+name = "bevy_obj"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d935d4459450e0aa346451483a038f6ac78034999a05deb268abe5ac81713daf"
+dependencies = [
+ "anyhow",
+ "bevy_app 0.13.2",
+ "bevy_asset",
+ "bevy_render",
+ "bevy_utils 0.13.2",
+ "thiserror",
+ "tobj",
 ]
 
 [[package]]
@@ -4170,6 +4186,15 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "tobj"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3bd4ba05f29e4c65b6c0c11a58b6465ffa820bac890d76ad407b4e81d8372e8"
+dependencies = [
+ "ahash",
+]
 
 [[package]]
 name = "toml_datetime"

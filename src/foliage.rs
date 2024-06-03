@@ -25,8 +25,8 @@ use bevy::utils::HashMap;
  
 use crate::foliage_config::FoliageConfig;
  
- #[derive(Component)]
-struct UpdatedGrassMesh ;
+// #[derive(Component)]
+//pub struct UpdateGrassMesh(Mesh) ;
 
 
 #[derive(Default)]
@@ -39,11 +39,15 @@ impl Plugin for FoliageDataPlugin {
          
         app   
 
-         //   . init_resource::<FoliageDataMapResource>() 
+            . init_resource::<CustomGrassMeshHandleResource>() 
 
+            .add_systems(Startup, setup) 
             .add_systems(Update , (
                 initialize_foliage,
-                replace_grass_mesh
+                replace_grass_mesh,
+
+
+                update_grass_mesh_handle
                 )  )
              
 
@@ -77,6 +81,20 @@ pub enum FoliageDataEvent {
 
  pub const CUSTOM_GRASS_MESH_HANDLE: Handle<Mesh> = Handle::weak_from_u128(7_257_128_457_583_957_921);
 
+#[derive(Resource)]
+pub struct CustomGrassMeshHandleResource {
+
+    pub grass_mesh_handle: Handle<Mesh>
+
+}
+
+impl Default for CustomGrassMeshHandleResource {
+    fn default() -> Self {
+        Self{
+         grass_mesh_handle : CUSTOM_GRASS_MESH_HANDLE
+        }
+    }
+}
 
 
 //pub struct FoliageChunksLoaded {}
@@ -111,6 +129,21 @@ impl FoliageData {
 //pub type PlanarPbrBundle = MaterialMeshBundle<RegionsMaterialExtension>;
 
 
+
+fn setup (
+      mut meshes: ResMut <Assets<Mesh>>,
+){
+
+
+     meshes.insert(CUSTOM_GRASS_MESH_HANDLE, custom_grass_mesh());
+
+
+
+
+}
+
+
+
 //spawn the chunks !? 
 pub fn initialize_foliage(
     mut commands: Commands,
@@ -120,21 +153,20 @@ pub fn initialize_foliage(
     foliage_root_query: Query<(Entity,  & FoliageData, &FoliageConfig),
        Added< FoliageData >>,
 
-    mut meshes: ResMut <Assets<Mesh>>,
-  //  mut region_materials: ResMut<Assets<RegionsMaterialExtension>>,
+ //   mut meshes: ResMut <Assets<Mesh>>,
 
-   // mut images: ResMut<Assets<Image>>
+
+    //custom_grass_mesh_handle_res: Res<CustomGrassMeshHandleResource>
+   
 ) {
 
-
+   // let custom_grass_mesh_handle = &custom_grass_mesh_handle_res.grass_mesh_handle;
   
-    meshes.insert(CUSTOM_GRASS_MESH_HANDLE, custom_grass_mesh());
-
-
-
+    
+ 
     for (foliage_root_entity, foliage_data, foliage_config) in foliage_root_query.iter (){
         
-                
+                    
 
             let max_chunks = foliage_config.chunk_rows * foliage_config.chunk_rows;
 
@@ -229,10 +261,10 @@ pub fn initialize_foliage(
 
 */
 
-const GRASS_WIDTH:f32 = 1.6;
-const GRASS_HEIGHT:f32 = 1.0;
+const GRASS_WIDTH:f32 = 3.0;
+const GRASS_HEIGHT:f32 = 2.0;
 
-fn custom_grass_mesh() -> Mesh {
+pub fn custom_grass_mesh() -> Mesh {
     let mut grass_mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
@@ -251,17 +283,66 @@ fn custom_grass_mesh() -> Mesh {
 }
 
 
+
 fn replace_grass_mesh(
     mut commands: Commands,
-     grass_query: Query< Entity, (With< WarblerGrass>,Without<UpdatedGrassMesh>) >
+     grass_query: Query<  Entity ,  Added< WarblerGrass>   > ,
 
-  ) {
+   // custom_grass_mesh_handle_res: Res<CustomGrassMeshHandleResource>
+   
+) {
 
-    for grass_entity in grass_query.iter(){
+   
+ //   let custom_grass_mesh_handle =  &custom_grass_mesh_handle_res.grass_mesh_handle;
 
-        commands.entity(grass_entity).try_insert((CUSTOM_GRASS_MESH_HANDLE,UpdatedGrassMesh));
+    for  grass_entity  in grass_query.iter(){
+        info!("insert custom grass mesh ");
+        commands.entity(grass_entity).try_insert(  CUSTOM_GRASS_MESH_HANDLE  );
+      //  commands.entity(grass_entity).remove( UpdateGrassMesh )
+    }
+}
+
+
+
+fn update_grass_mesh_handle (
+
+
+  mut ev_asset: EventReader< AssetEvent< Mesh  >>,
+
+  mut mesh_assets: ResMut<Assets<Mesh>> ,
+
+  custom_grass_mesh_res: Res <CustomGrassMeshHandleResource>,
+
+
+) {
+
+
+for ev in ev_asset.read(){
+
+        match ev {
+
+            AssetEvent::LoadedWithDependencies { id } => {
+
+                if id == &custom_grass_mesh_res.grass_mesh_handle.id() {
+                    info!("new obj loaded ");
+                    let new_loaded_mesh = mesh_assets.get(*id).unwrap().clone();
+
+                  //  let custom_grass_mesh =  ; 
+                     mesh_assets.insert(CUSTOM_GRASS_MESH_HANDLE ,  new_loaded_mesh )
+
+
+                }
+                
+
+            }
+
+            _ => {}
+
+        }
 
     }
+
+
 }
 
 
