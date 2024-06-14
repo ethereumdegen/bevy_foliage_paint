@@ -599,13 +599,16 @@ fn rebuild_chunks(
 
  
  
-		let color = Color::rgb(0.3, 0.4, 0.1); 
+
+		let grass_color = Color::rgb(0.07, 0.46, 0.27); 
+
+
 		 commands.entity(chunk_entity).despawn_descendants();
 
 
 		  let chunk_id = foliage_chunk.chunk_id; 
 
-		  info!("rebuild chunk {:?}", chunk_id );
+		 // info!("rebuild chunk {:?}", chunk_id );
 
           //65536
           let scale_height = 256.0;
@@ -629,8 +632,8 @@ fn rebuild_chunks(
             // the aabb defined the dimensions of the box the chunk lives in
             aabb: Aabb::from_min_max(Vec3::ZERO, Vec3::new(chunk_dimensions.x, scale_height, chunk_dimensions.y)),
             grass_color: GrassColor {
-                main_color: color,
-                bottom_color: color * 0.9,
+                main_color: grass_color,
+                bottom_color: grass_color * 0.9,
             },
 
             spatial: SpatialBundle {
